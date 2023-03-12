@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "HomebridgeNatureRemoIrRemote",
   "pluginType": "platform",
   "singular": true,
   "schema": {
