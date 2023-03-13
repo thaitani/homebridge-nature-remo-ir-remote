@@ -1,0 +1,21 @@
+{
+  "bridge": {
+    "name": "Homebridge",
+    "username": "0E:84:C3:4B:45:13",
+    "port": 51477,
+    "pin": "732-78-269"
+  },
+  "platforms": [
+    {
+      "name": "Config",
+      "auth": "none",
+      "port": 8581,
+      "platform": "config"
+    },
+    {
+      "name": "Example Dynamic Platform",
+      "token": "fe",
+      "platform": "NatureRemoRemotePlatform"
+    }
+  ]
+}

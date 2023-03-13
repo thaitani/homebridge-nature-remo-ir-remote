@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "HomebridgeNatureRemoIrRemote",
+  "pluginAlias": "NatureRemoRemotePlatform",
   "pluginType": "platform",
   "singular": true,
   "schema": {
@@ -9,7 +9,29 @@
         "title": "Name",
         "type": "string",
         "required": true,
-        "default": "Example Dynamic Platform"
+        "default": "default TV"
+      },
+      "token": {
+        "title": "Token",
+        "type": "string",
+        "required": true
+      },
+      "signals": {
+        "type": "object",
+        "properties": {
+          "power": {
+            "title": "Power",
+            "type": "string"
+          },
+          "volumeUp": {
+            "title": "VolumeUp",
+            "type": "string"
+          },
+          "volumeDown": {
+            "title": "VolumeDown",
+            "type": "string"
+          }
+        }
       }
     }
   }
