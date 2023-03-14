@@ -1,5 +1,5 @@
-import axios, { isAxiosError } from 'axios';
-import { Logger } from 'homebridge';
+import axios, { AxiosResponse, isAxiosError } from 'axios';
+import { Logger, LogLevel } from 'homebridge';
 import { BASE_URI } from './settings';
 import { Appliance, Device } from './types';
 
@@ -40,9 +40,7 @@ export class NatureRemoApi {
         headers: this.baseHeaders,
         data,
       });
-      const limit = res?.headers?.['x-rate-limit-limit'] ?? 0;
-      const remaining = res?.headers?.['x-rate-limit-remaining'] ?? 0;
-      this.logger.debug(`status: ${res.status}, limit: ${remaining}/${limit}`);
+      this.limitLogging(res);
       return res.data;
     } catch (e) {
       if (!isAxiosError(e)) {
@@ -51,20 +49,25 @@ export class NatureRemoApi {
       }
       this.logger.info(e.request.headers);
       if (e.response?.status === 429) {
-        const limit = e.response?.headers?.['x-rate-limit-limit'] ?? 0;
-        const remaining = e.response?.headers?.['x-rate-limit-remaining'] ?? 0;
-        const reset = e.response?.headers?.['x-rate-limit-reset'] ?? 0;
-        const resetDate = new Date(reset * 1000).toLocaleString();
-        this.logger.warn(
-          `status: ${
-            e.response?.status ?? 'NONE'
-          }, limit: ${remaining}/${limit}, reset at [${resetDate}]`,
-        );
+        this.limitLogging(e.response, LogLevel.WARN);
         return;
       }
       this.logger.error(`api error status: ${e.response?.status}`, e.message);
     } finally {
       this.logger.debug('request end', path);
     }
+  }
+
+  limitLogging(res: AxiosResponse, logLevel: LogLevel = LogLevel.INFO) {
+    const limit = res?.headers?.['x-rate-limit-limit'] ?? 0;
+    const remaining = res?.headers?.['x-rate-limit-remaining'] ?? 0;
+    const reset = res?.headers?.['x-rate-limit-reset'] ?? 0;
+    const resetDate = new Date(reset * 1000).toLocaleString();
+    this.logger.log(
+      logLevel,
+      `status: ${res.status}, limit: ${
+        limit - remaining
+      }/${limit}, reset at [${resetDate}]`,
+    );
   }
 }
