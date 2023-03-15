@@ -1,18 +1,19 @@
 import {
   API,
-  Logger,
-  Service,
+  APIEvent,
   Characteristic,
   DynamicPlatformPlugin,
+  Logger,
   PlatformAccessory,
-  UnknownContext,
   PlatformConfig,
-  APIEvent,
+  Service,
+  UnknownContext,
 } from 'homebridge';
+import { interval, map, Observable } from 'rxjs';
+import { NatureRemoApi } from './api';
 
-import { BASE_URI, PLATFORM_NAME, PLUGIN_NAME } from './settings';
-
-import axios from 'axios';
+import { PLATFORM_NAME } from './settings';
+import { Appliance, Device } from './types';
 
 export default class NatureRemoIRHomebridgePlatform
   implements DynamicPlatformPlugin
@@ -21,7 +22,15 @@ export default class NatureRemoIRHomebridgePlatform
   public readonly Characteristic: typeof Characteristic =
     this.api.hap.Characteristic;
 
-  tvAccessory: PlatformAccessory;
+  public readonly accessories: PlatformAccessory[] = [];
+
+  public readonly appliancesObservable: Observable<Promise<Appliance[]>>;
+  public readonly devicesObservable: Observable<Promise<Device[]>>;
+
+  public readonly natureRemoApi = new NatureRemoApi(
+    this.config.token,
+    this.log,
+  );
 
   constructor(
     public readonly log: Logger,
@@ -29,70 +38,50 @@ export default class NatureRemoIRHomebridgePlatform
     public readonly api: API,
   ) {
     this.Characteristic = api.hap.Characteristic;
-    this.log.info(`${this.config.name}`);
+    this.log.debug(`Finished initializing platform: ${this.config.name}`);
 
-    const tvName = this.config.name ?? 'default TV';
+    const refreshRate = this.config.refreshRate ?? 60;
 
-    const uuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}${tvName}`);
+    this.log.info(this.config.re);
 
-    this.tvAccessory = new api.platformAccessory(tvName, uuid);
-    this.tvAccessory.category = this.api.hap.Categories.TELEVISION;
+    this.appliancesObservable = map(async () => {
+      return this.natureRemoApi.getAppliances();
+    })(interval(refreshRate * 1000));
+    this.devicesObservable = map(async () => {
+      return this.natureRemoApi.getDevices();
+    })(interval(refreshRate * 1000));
 
-    // add the tv service
-    const tvService = this.tvAccessory.addService(this.Service.Television);
-
-    // set the tv name
-    tvService.setCharacteristic(this.Characteristic.ConfiguredName, tvName);
-
-    // set sleep discovery characteristic
-    tvService.setCharacteristic(
-      this.Characteristic.SleepDiscoveryMode,
-      this.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE,
-    );
-
-    // handle on / off events using the Active characteristic
-    tvService
-      .getCharacteristic(this.Characteristic.Active)
-      .onSet((newValue) => {
-        this.log.info('set Active => setNewValue: ' + newValue);
-        tvService.updateCharacteristic(this.Characteristic.Active, 1);
-      });
-
-    tvService.setCharacteristic(this.Characteristic.ActiveIdentifier, 1);
-
-    // handle input source changes
-    tvService
-      .getCharacteristic(this.Characteristic.ActiveIdentifier)
-      .onSet((newValue) => {
-        // the value will be the value you set for the Identifier Characteristic
-        // on the Input Source service that was selected - see input sources below.
-
-        this.log.info('set Active Identifier => setNewValue: ' + newValue);
-      });
-    this.api.publishExternalAccessories(PLUGIN_NAME, [this.tvAccessory]);
     this.api.on(APIEvent.DID_FINISH_LAUNCHING, () => {
       this.log.info(`${PLATFORM_NAME} 'didFinishLaunching'`);
+      this.discoverDevices();
+    });
+  }
+
+  async discoverDevices() {
+    this.log.info(this.config.token);
+    const appliances = await this.natureRemoApi.getAppliances();
+    appliances.map((appliance) => {
+      switch (appliance.type) {
+        case 'IR':
+          if (this.config.irDevices) {
+            this.log.info(appliance.signals[0].name);
+          }
+          break;
+        case 'AC':
+          this.log.info(appliance.aircon.range.fixedButtons[0]);
+          break;
+        case 'QRIO_LOCK':
+          this.log.info(
+            'Qrio Lock is available:',
+            appliance.qrio_lock.is_available,
+          );
+          break;
+      }
     });
   }
 
   configureAccessory(accessory: PlatformAccessory<UnknownContext>): void {
     this.log.info('Configureing accessotry %s', accessory.displayName);
-  }
-
-  async sendSignal(signal: string) {
-    try {
-      const res = await axios.post(
-        `${BASE_URI}signals/${signal}/send`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${this.config.token}`,
-          },
-        },
-      );
-      this.log.debug(String(res.status));
-    } catch (e) {
-      this.log.error(String(e));
-    }
+    this.accessories.push(accessory);
   }
 }
