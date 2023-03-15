@@ -5,15 +5,16 @@ import {
   DynamicPlatformPlugin,
   Logger,
   PlatformAccessory,
-  PlatformConfig,
   Service,
   UnknownContext,
 } from 'homebridge';
-import { interval, map, Observable } from 'rxjs';
+import { Observable, map, timer } from 'rxjs';
 import { NatureRemoApi } from './api';
 
 import { PLATFORM_NAME } from './settings';
-import { Appliance, Device } from './types';
+import { Appliance } from './types/appliance';
+import { NatureRemoPlatformConfig } from './types/config';
+import { Device } from './types/device';
 
 export default class NatureRemoIRHomebridgePlatform
   implements DynamicPlatformPlugin
@@ -34,7 +35,7 @@ export default class NatureRemoIRHomebridgePlatform
 
   constructor(
     public readonly log: Logger,
-    public readonly config: PlatformConfig,
+    public readonly config: NatureRemoPlatformConfig,
     public readonly api: API,
   ) {
     this.Characteristic = api.hap.Characteristic;
@@ -42,14 +43,12 @@ export default class NatureRemoIRHomebridgePlatform
 
     const refreshRate = this.config.refreshRate ?? 60;
 
-    this.log.info(this.config.re);
-
     this.appliancesObservable = map(async () => {
       return this.natureRemoApi.getAppliances();
-    })(interval(refreshRate * 1000));
+    })(timer(0, refreshRate * 1000));
     this.devicesObservable = map(async () => {
       return this.natureRemoApi.getDevices();
-    })(interval(refreshRate * 1000));
+    })(timer(0, refreshRate * 1000));
 
     this.api.on(APIEvent.DID_FINISH_LAUNCHING, () => {
       this.log.info(`${PLATFORM_NAME} 'didFinishLaunching'`);

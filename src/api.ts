@@ -1,7 +1,8 @@
 import axios, { AxiosResponse, isAxiosError } from 'axios';
 import { Logger, LogLevel } from 'homebridge';
 import { BASE_URI } from './settings';
-import { Appliance, Device } from './types';
+import { Appliance } from './types/appliance';
+import { Device } from './types/device';
 
 export class NatureRemoApi {
   constructor(public readonly token: string, public readonly logger: Logger) {}
