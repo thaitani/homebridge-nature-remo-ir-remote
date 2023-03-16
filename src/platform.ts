@@ -13,12 +13,14 @@ import {
 } from 'homebridge';
 import { BehaviorSubject, map, timer } from 'rxjs';
 import { NatureRemoApi } from './api';
+import { Aircon } from './appliances/aircon';
 
 import { Sensor } from './appliances/sensor';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import { Appliance } from './types/appliance';
+import { ApplianceAircon, ApplianceIR } from './types/appliance';
 import { NatureRemoPlatformConfig } from './types/config';
 import { Device } from './types/device';
+import { isAirconAppliances, isIRAppliances } from './utils';
 
 export default class NatureRemoIRHomebridgePlatform
   implements DynamicPlatformPlugin
@@ -29,7 +31,11 @@ export default class NatureRemoIRHomebridgePlatform
 
   public readonly accessories: PlatformAccessory[] = [];
 
-  public readonly appliancesSubject = new BehaviorSubject<Appliance[]>([]);
+  public readonly airconAppliancesSubject = new BehaviorSubject<
+    ApplianceAircon[]
+  >([]);
+
+  public readonly irAppliancesSubject = new BehaviorSubject<ApplianceIR[]>([]);
   public readonly devicesSubject = new BehaviorSubject<Device[]>([]);
 
   public readonly natureRemoApi = new NatureRemoApi(
@@ -51,7 +57,14 @@ export default class NatureRemoIRHomebridgePlatform
       .subscribe(async (newValue) => {
         const appliances = await newValue;
         if (appliances) {
-          this.appliancesSubject.next(appliances);
+          const ac = appliances.filter((e) => e.type === 'AC');
+          if (isAirconAppliances(ac)) {
+            this.airconAppliancesSubject.next(ac);
+          }
+          const ir = appliances.filter((e) => e.type === 'IR');
+          if (isIRAppliances(ir)) {
+            this.irAppliancesSubject.next(ir);
+          }
         }
       });
     timer(0, (this.config.devicesRefreshRate ?? 300) * 1000)
@@ -67,7 +80,6 @@ export default class NatureRemoIRHomebridgePlatform
       this.logger(`${PLATFORM_NAME} 'didFinishLaunching'`);
 
       this.discoverDevices();
-
       this.checkPlatformAccessories();
     });
   }
@@ -91,23 +103,37 @@ export default class NatureRemoIRHomebridgePlatform
         );
       }
     });
+    this.airconAppliancesSubject.subscribe((appliances) => {
+      const uuids = appliances.map((appliance) =>
+        this.api.hap.uuid.generate(appliance.id),
+      );
+      const notExistsAircon = this.accessories.filter(
+        (accessory) =>
+          accessory.category === Categories.AIR_CONDITIONER &&
+          !uuids.includes(accessory.UUID),
+      );
+      if (notExistsAircon.length > 0) {
+        this.api.unregisterPlatformAccessories(
+          PLUGIN_NAME,
+          PLATFORM_NAME,
+          notExistsAircon,
+        );
+      }
+    });
   }
 
   discoverDevices() {
     this.devicesSubject.subscribe((devices) => {
-      if (devices) {
-        devices.map((e) => {
-          this.createSensor(e);
-        });
-      } else {
-        this.logger('getDevices is not return');
-      }
+      devices.forEach((e) => this.createSensor(e));
+    });
+    this.airconAppliancesSubject.subscribe((appliances) => {
+      appliances.forEach((e) => this.createAircon(e));
     });
   }
 
   createSensor(device: Device) {
     const uuid = this.api.hap.uuid.generate(device.id);
-    const existingAccessory = this.accessories.find((a) => a.UUID === uuid);
+    const existingAccessory = this.accessories.find((e) => e.UUID === uuid);
     if (existingAccessory) {
       new Sensor(this, existingAccessory, device);
     } else {
@@ -118,6 +144,25 @@ export default class NatureRemoIRHomebridgePlatform
       );
       new Sensor(this, accessory, device);
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
+        accessory,
+      ]);
+      this.accessories.push(accessory);
+    }
+  }
+
+  createAircon(aircon: ApplianceAircon) {
+    const uuid = this.api.hap.uuid.generate(aircon.id);
+    const existingAccessory = this.accessories.find((e) => e.UUID === uuid);
+    if (existingAccessory) {
+      new Aircon(this, existingAccessory, aircon);
+    } else {
+      const accessory = new this.api.platformAccessory(
+        aircon.nickname,
+        uuid,
+        Categories.AIR_CONDITIONER,
+      );
+      new Aircon(this, accessory, aircon);
+      this.api.registerPlatformAccessories(PLATFORM_NAME, PLATFORM_NAME, [
         accessory,
       ]);
       this.accessories.push(accessory);

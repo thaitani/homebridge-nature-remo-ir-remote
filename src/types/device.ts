@@ -1,5 +1,9 @@
 // GET devices responseType
 export type Device = {
+  newest_events: NewestEvents;
+} & InnerDevice;
+
+export type InnerDevice = {
   name: string;
   id: string;
   created_at: Date;
@@ -10,7 +14,6 @@ export type Device = {
   firmware_version: string;
   temperature_offset: number;
   humidity_offset: number;
-  newest_events: NewestEvents;
 };
 
 export type Hu = {

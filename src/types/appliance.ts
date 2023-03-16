@@ -1,43 +1,32 @@
+import { InnerDevice } from './device';
+
 // GET appliances response type
 export type Appliance = ApplianceIR | ApplianceAircon | ApplianceQrio;
 
 export type ApplianceBase = {
   id: string;
-  device: Device;
+  device: InnerDevice;
   model: Model;
   nickname: string;
   image: string;
 };
 
-type ApplianceIR = {
+export type ApplianceIR = {
   type: 'IR';
   signals: Signal[];
 } & ApplianceBase;
 
-type ApplianceAircon = {
+export type ApplianceAircon = {
   type: 'AC';
   aircon: Aircon;
   settings: Settings;
   model: Model;
 } & ApplianceBase;
 
-type ApplianceQrio = {
+export type ApplianceQrio = {
   type: 'QRIO_LOCK';
   qrio_lock: QrioLock;
 } & ApplianceBase;
-
-type Device = {
-  name: string;
-  id: string;
-  created_at: Date;
-  updated_at: Date;
-  mac_address: string;
-  bt_mac_address: string;
-  serial_number: string;
-  firmware_version: string;
-  temperature_offset: number;
-  humidity_offset: number;
-};
 
 export type Model = {
   id: string;
