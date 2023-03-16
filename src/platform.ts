@@ -5,13 +5,15 @@ import {
   DynamicPlatformPlugin,
   Logger,
   PlatformAccessory,
+  PlatformConfig,
   Service,
   UnknownContext,
 } from 'homebridge';
-import { Observable, map, timer } from 'rxjs';
+import { Subject, interval, map } from 'rxjs';
 import { NatureRemoApi } from './api';
 
-import { PLATFORM_NAME } from './settings';
+import { Sensor } from './appliances/sensor';
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { Appliance } from './types/appliance';
 import { NatureRemoPlatformConfig } from './types/config';
 import { Device } from './types/device';
@@ -25,30 +27,42 @@ export default class NatureRemoIRHomebridgePlatform
 
   public readonly accessories: PlatformAccessory[] = [];
 
-  public readonly appliancesObservable: Observable<Promise<Appliance[]>>;
-  public readonly devicesObservable: Observable<Promise<Device[]>>;
+  public readonly appliancesSubject: Subject<Appliance[]> = new Subject();
+  public readonly devicesSubject: Subject<Device[]> = new Subject();
 
   public readonly natureRemoApi = new NatureRemoApi(
     this.config.token,
     this.log,
   );
 
+  public readonly safeConfig = this.config as NatureRemoPlatformConfig;
+
   constructor(
     public readonly log: Logger,
-    public readonly config: NatureRemoPlatformConfig,
+    public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
-    this.Characteristic = api.hap.Characteristic;
     this.log.debug(`Finished initializing platform: ${this.config.name}`);
 
-    const refreshRate = this.config.refreshRate ?? 60;
-
-    this.appliancesObservable = map(async () => {
-      return this.natureRemoApi.getAppliances();
-    })(timer(0, refreshRate * 1000));
-    this.devicesObservable = map(async () => {
-      return this.natureRemoApi.getDevices();
-    })(timer(0, refreshRate * 1000));
+    // this.appliancesObservable = map(async () => {
+    //   return await this.natureRemoApi.getAppliances();
+    // })(interval((this.config.appliancesRefreshRate ?? 60) * 1000));
+    interval((this.config.appliancesRefreshRate ?? 60) * 1000)
+      .pipe(map(() => this.natureRemoApi.getAppliances()))
+      .subscribe(async (newValue) => {
+        const appliances = await newValue;
+        if (appliances) {
+          this.appliancesSubject.next(appliances);
+        }
+      });
+    interval((this.config.devicesRefreshRate ?? 60) * 1000)
+      .pipe(map(() => this.natureRemoApi.getDevices()))
+      .subscribe(async (newValue) => {
+        const devices = await newValue;
+        if (devices) {
+          this.devicesSubject.next(devices);
+        }
+      });
 
     this.api.on(APIEvent.DID_FINISH_LAUNCHING, () => {
       this.log.info(`${PLATFORM_NAME} 'didFinishLaunching'`);
@@ -57,30 +71,33 @@ export default class NatureRemoIRHomebridgePlatform
   }
 
   async discoverDevices() {
-    this.log.info(this.config.token);
-    const appliances = await this.natureRemoApi.getAppliances();
-    appliances.map((appliance) => {
-      switch (appliance.type) {
-        case 'IR':
-          if (this.config.irDevices) {
-            this.log.info(appliance.signals[0].name);
-          }
-          break;
-        case 'AC':
-          this.log.info(appliance.aircon.range.fixedButtons[0]);
-          break;
-        case 'QRIO_LOCK':
-          this.log.info(
-            'Qrio Lock is available:',
-            appliance.qrio_lock.is_available,
-          );
-          break;
-      }
-    });
+    const devices = await this.natureRemoApi.getDevices();
+    if (devices) {
+      devices.map((e) => {
+        this.createSensor(e);
+      });
+    } else {
+      this.log.debug('devices not find');
+    }
+  }
+
+  createSensor(device: Device) {
+    const uuid = this.api.hap.uuid.generate(device.id);
+    const existingAccessory = this.accessories.find((a) => a.UUID === uuid);
+    if (existingAccessory) {
+      new Sensor(this, existingAccessory, device);
+    } else {
+      const accessory = new this.api.platformAccessory(device.name, uuid);
+      new Sensor(this, accessory, device);
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
+        accessory,
+      ]);
+      this.accessories.push(accessory);
+    }
   }
 
   configureAccessory(accessory: PlatformAccessory<UnknownContext>): void {
-    this.log.info('Configureing accessotry %s', accessory.displayName);
+    this.log.info('Configuring accessory %s', accessory.displayName);
     this.accessories.push(accessory);
   }
 }

@@ -2,14 +2,52 @@ import { PlatformConfig } from 'homebridge';
 
 export interface NatureRemoPlatformConfig extends PlatformConfig {
   token: string;
-  refreshRate: number;
-  options?: Options | Record<string, never>;
+  devicesRefreshRate: number;
+  appliancesRefreshRate: number;
+  sensors: Array<SensorConfig>;
+  appliances: Array<ApplianceConfig>;
 }
 
-export type Options = {
-  devices?: Array<DeviceConfig>;
+type ApplianceConfig = ApplianceAircon | ApplianceIRTV;
+
+type ApplianceBase = {
+  name: string;
 };
 
-export type DeviceConfig = {
+type ApplianceAircon = {
+  type: 'aircon';
+} & ApplianceBase;
+
+type ApplianceIRTV = {
+  type: 'irtv';
+  mapping: IRTVMappingConfig;
+} & ApplianceBase;
+
+type IRTVMappingConfig = {
+  active: string;
+  volumeUp: string;
+  volumeDown: string;
+  rewind: string;
+  fastForward: string;
+  nextTrack: string;
+  previousTrack: string;
+  arrowUp: string;
+  arrowDown: string;
+  arrowLeft: string;
+  arrowRight: string;
+  select: string;
+  back: string;
+  exit: string;
+  playPause: string;
+  information: string;
+  inputSource: Array<InputSourceConfig>;
+};
+
+type InputSourceConfig = {
+  name: string;
+  signal: string;
+};
+
+type SensorConfig = {
   name: string;
 };

@@ -34,8 +34,8 @@ export type Te = {
 };
 
 export type NewestEvents = {
-  hu: Hu;
-  il: Il;
-  mo: Mo;
+  hu?: Hu;
+  il?: Il;
+  mo?: Mo;
   te: Te;
 };

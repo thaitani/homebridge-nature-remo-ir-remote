@@ -12,30 +12,26 @@ export class NatureRemoApi {
     'content-type': 'application/x-www-form-urlencoded',
   };
 
-  async sendSignal(signal: string) {
-    await this._request('POST', `/signals/${signal}/send`);
+  sendSignal(signal: string) {
+    return this._request<void>('POST', `/signals/${signal}/send`);
   }
 
-  async getDevices(): Promise<Device[]> {
-    const devices: Device[] | undefined = await this._request(
-      'GET',
-      '/devices',
-    );
-    return devices ?? [];
+  getDevices(): Promise<Device[] | undefined> {
+    return this._request<Device[]>('GET', '/devices');
   }
 
-  async getAppliances(): Promise<Appliance[]> {
-    const appliances: Appliance[] | undefined = await this._request(
-      'GET',
-      '/appliances',
-    );
-    return appliances ?? [];
+  getAppliances(): Promise<Appliance[] | undefined> {
+    return this._request<Appliance[]>('GET', '/appliances');
   }
 
-  async _request(method: 'GET' | 'POST', path: string, data?) {
+  async _request<T>(
+    method: 'GET' | 'POST',
+    path: string,
+    data?,
+  ): Promise<T | undefined> {
     this.logger.debug('request start', path);
     try {
-      const res = await axios.request({
+      const res = await axios.request<T>({
         url: `${BASE_URI}${path}`,
         method: method,
         headers: this.baseHeaders,
