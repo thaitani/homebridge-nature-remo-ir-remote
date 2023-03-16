@@ -10,7 +10,7 @@ import {
   Service,
   UnknownContext,
 } from 'homebridge';
-import { Subject, interval, map } from 'rxjs';
+import { interval, map, Subject } from 'rxjs';
 import { NatureRemoApi } from './api';
 
 import { Sensor } from './appliances/sensor';
@@ -43,7 +43,7 @@ export default class NatureRemoIRHomebridgePlatform
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
-    this.loggger(`Finished initializing platform: ${this.config.name}`);
+    this.logger(`Finished initializing platform: ${this.config.name}`);
 
     interval((this.config.appliancesRefreshRate ?? 300) * 1000)
       .pipe(map(() => this.natureRemoApi.getAppliances()))
@@ -63,7 +63,7 @@ export default class NatureRemoIRHomebridgePlatform
       });
 
     this.api.on(APIEvent.DID_FINISH_LAUNCHING, () => {
-      this.loggger(`${PLATFORM_NAME} 'didFinishLaunching'`);
+      this.logger(`${PLATFORM_NAME} 'didFinishLaunching'`);
       this.discoverDevices();
     });
   }
@@ -75,7 +75,7 @@ export default class NatureRemoIRHomebridgePlatform
         this.createSensor(e);
       });
     } else {
-      this.loggger('getDevices is not return');
+      this.logger('getDevices is not return');
     }
   }
 
@@ -95,11 +95,11 @@ export default class NatureRemoIRHomebridgePlatform
   }
 
   configureAccessory(accessory: PlatformAccessory<UnknownContext>): void {
-    this.loggger(`Configuring accessory ${accessory.displayName}`);
+    this.logger(`Configuring accessory ${accessory.displayName}`);
     this.accessories.push(accessory);
   }
 
-  loggger(message: string, logLevel = LogLevel.DEBUG) {
+  logger(message: string, logLevel = LogLevel.DEBUG) {
     this.log.log(logLevel, `{platform} ${message}`);
   }
 }
