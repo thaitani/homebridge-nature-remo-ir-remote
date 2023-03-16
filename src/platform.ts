@@ -20,7 +20,7 @@ import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { ApplianceAircon, ApplianceIR } from './types/appliance';
 import { NatureRemoPlatformConfig } from './types/config';
 import { Device } from './types/device';
-import { isAirconAppliances, isIRAppliances } from './utils';
+import { getCategoryName, isAirconAppliances, isIRAppliances } from './utils';
 
 export default class NatureRemoIRHomebridgePlatform
   implements DynamicPlatformPlugin
@@ -84,108 +84,84 @@ export default class NatureRemoIRHomebridgePlatform
     });
   }
 
+  unregisterPlatformAccessotries(
+    targets: Array<{ id: string }>,
+    category: Categories,
+  ) {
+    const uuids = targets.map((target) =>
+      this.api.hap.uuid.generate(target.id),
+    );
+    const notExistsSensors = this.accessories.filter(
+      (accessory) =>
+        accessory.category === category && !uuids.includes(accessory.UUID),
+    );
+    if (notExistsSensors.length > 0) {
+      this.logger(
+        `unregister ${getCategoryName(
+          category,
+        )} accessories ${notExistsSensors.reduce(
+          (prev, curr) => `${prev}, ${curr.displayName}`,
+          '',
+        )}`,
+      );
+      this.api.unregisterPlatformAccessories(
+        PLUGIN_NAME,
+        PLATFORM_NAME,
+        notExistsSensors,
+      );
+    }
+  }
+
   // APIの結果にないAccessoryを削除する
   checkPlatformAccessories() {
     this.devicesSubject.subscribe((devices) => {
-      const uuids = devices.map((device) =>
-        this.api.hap.uuid.generate(device.id),
-      );
-      const notExistsSensors = this.accessories.filter(
-        (accessory) =>
-          accessory.category === Categories.SENSOR &&
-          !uuids.includes(accessory.UUID),
-      );
-      if (notExistsSensors.length > 0) {
-        this.logger(
-          `unregister sensor accessories ${notExistsSensors.reduce(
-            (prev, curr) => `${prev}, ${curr.displayName}`,
-            '',
-          )}`,
-        );
-        this.api.unregisterPlatformAccessories(
-          PLUGIN_NAME,
-          PLATFORM_NAME,
-          notExistsSensors,
-        );
-      }
+      this.unregisterPlatformAccessotries(devices, Categories.SENSOR);
     });
     this.airconAppliancesSubject.subscribe((appliances) => {
-      const uuids = appliances.map((appliance) =>
-        this.api.hap.uuid.generate(appliance.id),
+      this.unregisterPlatformAccessotries(
+        appliances,
+        Categories.AIR_CONDITIONER,
       );
-      const notExistsAircon = this.accessories.filter(
-        (accessory) =>
-          accessory.category === Categories.AIR_CONDITIONER &&
-          !uuids.includes(accessory.UUID),
-      );
-      if (notExistsAircon.length > 0) {
-        this.logger(
-          `unregister aircon accessories ${notExistsAircon.reduce(
-            (prev, curr) => `${prev}, ${curr.displayName}`,
-            '',
-          )}`,
-        );
-        this.api.unregisterPlatformAccessories(
-          PLUGIN_NAME,
-          PLATFORM_NAME,
-          notExistsAircon,
-        );
-      }
     });
   }
 
   discoverDevices() {
     this.devicesSubject.subscribe((devices) => {
-      devices.forEach((e) => this.createSensor(e));
+      devices.forEach((device) =>
+        this.registerPlatformAccessotries(
+          device.id,
+          device.name,
+          (accessory) => new Sensor(this, accessory, device),
+        ),
+      );
     });
     this.airconAppliancesSubject.subscribe((appliances) => {
-      appliances.forEach((e) => this.createAircon(e));
+      appliances.forEach((aircon) =>
+        this.registerPlatformAccessotries(
+          aircon.id,
+          aircon.nickname,
+          (accessory) => new Aircon(this, accessory, aircon),
+        ),
+      );
     });
   }
 
-  createSensor(device: Device) {
-    const uuid = this.api.hap.uuid.generate(device.id);
+  registerPlatformAccessotries(
+    id: string,
+    displayName: string,
+    setupAccessory: (accessory: PlatformAccessory) => void,
+  ) {
+    const uuid = this.api.hap.uuid.generate(id);
     const existingAccessory = this.accessories.find((e) => e.UUID === uuid);
     if (existingAccessory) {
-      new Sensor(this, existingAccessory, device);
-      this.logger(
-        `sensor accessory existing: ${existingAccessory.displayName}, ${existingAccessory.UUID}`,
-      );
+      setupAccessory(existingAccessory);
     } else {
       const accessory = new this.api.platformAccessory(
-        device.name,
+        displayName,
         uuid,
         Categories.SENSOR,
       );
-      new Sensor(this, accessory, device);
-      this.logger(
-        `aircon accessory register: ${accessory.displayName}, ${accessory.UUID}`,
-      );
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
-        accessory,
-      ]);
-      this.accessories.push(accessory);
-    }
-  }
-
-  createAircon(aircon: ApplianceAircon) {
-    const uuid = this.api.hap.uuid.generate(aircon.id);
-    const existingAccessory = this.accessories.find((e) => e.UUID === uuid);
-    if (existingAccessory) {
-      new Aircon(this, existingAccessory, aircon);
-      this.logger(
-        `aircon accessory existing: ${existingAccessory.displayName}, ${existingAccessory.UUID}`,
-      );
-    } else {
-      const accessory = new this.api.platformAccessory(
-        aircon.nickname,
-        uuid,
-        Categories.AIR_CONDITIONER,
-      );
-      new Aircon(this, accessory, aircon);
-      this.logger(
-        `aircon accessory register: ${accessory.displayName}, ${accessory.UUID}`,
-      );
+      setupAccessory(accessory);
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
         accessory,
       ]);
