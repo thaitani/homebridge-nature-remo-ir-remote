@@ -4,6 +4,7 @@ import {
   Characteristic,
   DynamicPlatformPlugin,
   Logger,
+  LogLevel,
   PlatformAccessory,
   PlatformConfig,
   Service,
@@ -42,12 +43,9 @@ export default class NatureRemoIRHomebridgePlatform
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
-    this.log.debug(`Finished initializing platform: ${this.config.name}`);
+    this.loggger(`Finished initializing platform: ${this.config.name}`);
 
-    // this.appliancesObservable = map(async () => {
-    //   return await this.natureRemoApi.getAppliances();
-    // })(interval((this.config.appliancesRefreshRate ?? 60) * 1000));
-    interval((this.config.appliancesRefreshRate ?? 60) * 1000)
+    interval((this.config.appliancesRefreshRate ?? 300) * 1000)
       .pipe(map(() => this.natureRemoApi.getAppliances()))
       .subscribe(async (newValue) => {
         const appliances = await newValue;
@@ -55,7 +53,7 @@ export default class NatureRemoIRHomebridgePlatform
           this.appliancesSubject.next(appliances);
         }
       });
-    interval((this.config.devicesRefreshRate ?? 60) * 1000)
+    interval((this.config.devicesRefreshRate ?? 300) * 1000)
       .pipe(map(() => this.natureRemoApi.getDevices()))
       .subscribe(async (newValue) => {
         const devices = await newValue;
@@ -65,7 +63,7 @@ export default class NatureRemoIRHomebridgePlatform
       });
 
     this.api.on(APIEvent.DID_FINISH_LAUNCHING, () => {
-      this.log.info(`${PLATFORM_NAME} 'didFinishLaunching'`);
+      this.loggger(`${PLATFORM_NAME} 'didFinishLaunching'`);
       this.discoverDevices();
     });
   }
@@ -77,7 +75,7 @@ export default class NatureRemoIRHomebridgePlatform
         this.createSensor(e);
       });
     } else {
-      this.log.debug('devices not find');
+      this.loggger('getDevices is not return');
     }
   }
 
@@ -97,7 +95,11 @@ export default class NatureRemoIRHomebridgePlatform
   }
 
   configureAccessory(accessory: PlatformAccessory<UnknownContext>): void {
-    this.log.info('Configuring accessory %s', accessory.displayName);
+    this.loggger(`Configuring accessory ${accessory.displayName}`);
     this.accessories.push(accessory);
+  }
+
+  loggger(message: string, logLevel = LogLevel.DEBUG) {
+    this.log.log(logLevel, `{platform} ${message}`);
   }
 }

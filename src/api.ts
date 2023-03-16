@@ -29,7 +29,7 @@ export class NatureRemoApi {
     path: string,
     data?,
   ): Promise<T | undefined> {
-    this.logger.debug('request start', path);
+    this.log(`request start ${path}`);
     try {
       const res = await axios.request<T>({
         url: `${BASE_URI}${path}`,
@@ -41,16 +41,19 @@ export class NatureRemoApi {
       return res.data;
     } catch (e) {
       if (!isAxiosError(e)) {
-        this.logger.error('unknown error', e);
+        this.log(`unknown error ${e}`, LogLevel.ERROR);
         return;
       }
       if (e.response?.status === 429) {
         this.limitLogging(e.response, LogLevel.WARN);
         return;
       }
-      this.logger.error(`api error status: ${e.response?.status}`, e.message);
+      this.log(
+        `api error status: ${e.response?.status} ${e.cause}`,
+        LogLevel.ERROR,
+      );
     } finally {
-      this.logger.debug('request end', path);
+      this.log(`request end: ${path}`);
     }
   }
 
@@ -59,11 +62,15 @@ export class NatureRemoApi {
     const remaining = res?.headers?.['x-rate-limit-remaining'] ?? 0;
     const reset = res?.headers?.['x-rate-limit-reset'] ?? 0;
     const resetDate = new Date(reset * 1000).toLocaleString();
-    this.logger.log(
-      logLevel,
+    this.log(
       `status: ${res.status}, limit: ${
         limit - remaining
       }/${limit}, reset at [${resetDate}]`,
+      logLevel,
     );
+  }
+
+  log(message: string, logLevel = LogLevel.DEBUG) {
+    this.logger.log(logLevel, `{api} ${message}`);
   }
 }

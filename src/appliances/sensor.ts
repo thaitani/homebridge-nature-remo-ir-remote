@@ -1,4 +1,4 @@
-import { Logger, PlatformAccessory, Service } from 'homebridge';
+import { Logger, LogLevel, PlatformAccessory, Service } from 'homebridge';
 import NatureRemoIRHomebridgePlatform from '../platform';
 import { Device } from '../types/device';
 
@@ -14,7 +14,7 @@ export class Sensor {
     private readonly accessory: PlatformAccessory,
     private readonly device: Device,
   ) {
-    this.logger.debug('set up Sensor', device.name);
+    this.log(`setup sensor: ${device.name}`);
 
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -44,7 +44,7 @@ export class Sensor {
         device.newest_events.te.val,
       );
 
-    if (device?.newest_events.hu) {
+    if (this.isNotMini(device)) {
       (this.humidifierService =
         accessory.getService(this.platform.Service.HumiditySensor) ||
         accessory.addService(this.platform.Service.HumiditySensor))
@@ -58,11 +58,11 @@ export class Sensor {
         )
         .updateCharacteristic(
           this.platform.Characteristic.CurrentRelativeHumidity,
-          device.newest_events.hu.val,
+          device.newest_events.hu!.val,
         );
     }
 
-    if (device?.newest_events.il) {
+    if (this.isNotMini(device)) {
       (this.lightSensorService =
         accessory.getService(this.platform.Service.LightSensor) ||
         accessory.addService(this.platform.Service.LightSensor))
@@ -76,7 +76,7 @@ export class Sensor {
         )
         .updateCharacteristic(
           this.platform.Characteristic.CurrentAmbientLightLevel,
-          device.newest_events.il.val,
+          device.newest_events.il!.val,
         );
     }
 
@@ -86,25 +86,43 @@ export class Sensor {
   subscribe() {
     this.platform.devicesSubject.subscribe((devices) => {
       const device = devices.find((e) => e.id === this.device.id);
-      if (device?.newest_events.hu) {
-        this.humidifierService?.updateCharacteristic(
-          this.platform.Characteristic.CurrentRelativeHumidity,
-          device.newest_events.hu.val,
+      if (!device) {
+        this.log(
+          `device not find: ${this.device.id} ${this.device.name}`,
+          LogLevel.WARN,
         );
+        return;
       }
-      if (device?.newest_events.te) {
-        this.temperatureService.updateCharacteristic(
-          this.platform.Characteristic.CurrentTemperature,
-          device.newest_events.te.val,
-        );
-      }
-      if (device?.newest_events.il) {
+      this.log(
+        `subscribe device: name=${device.name} te=${device.newest_events.te.val} hu=${device.newest_events.hu?.val} il=${device.newest_events.il?.val}`,
+      );
+      this.temperatureService.updateCharacteristic(
+        this.platform.Characteristic.CurrentTemperature,
+        device.newest_events.te.val,
+      );
+
+      if (this.isNotMini(device)) {
         this.lightSensorService
           ?.getCharacteristic(
             this.platform.Characteristic.CurrentAmbientLightLevel,
           )
-          .updateValue(device.newest_events.il.val);
+          .updateValue(device.newest_events.il!.val);
+        this.humidifierService?.updateCharacteristic(
+          this.platform.Characteristic.CurrentRelativeHumidity,
+          device.newest_events.hu!.val,
+        );
       }
     });
+  }
+
+  isNotMini(device: Device) {
+    if (device.newest_events.hu && device.newest_events.il) {
+      return true;
+    }
+    return false;
+  }
+
+  log(message: string, logLevel = LogLevel.DEBUG) {
+    this.logger.log(logLevel, `{sensor} ${message}`);
   }
 }
