@@ -96,6 +96,12 @@ export default class NatureRemoIRHomebridgePlatform
           !uuids.includes(accessory.UUID),
       );
       if (notExistsSensors.length > 0) {
+        this.logger(
+          `unregister sensor accessories ${notExistsSensors.reduce(
+            (prev, curr) => `${prev}, ${curr.displayName}`,
+            '',
+          )}`,
+        );
         this.api.unregisterPlatformAccessories(
           PLUGIN_NAME,
           PLATFORM_NAME,
@@ -113,6 +119,12 @@ export default class NatureRemoIRHomebridgePlatform
           !uuids.includes(accessory.UUID),
       );
       if (notExistsAircon.length > 0) {
+        this.logger(
+          `unregister aircon accessories ${notExistsAircon.reduce(
+            (prev, curr) => `${prev}, ${curr.displayName}`,
+            '',
+          )}`,
+        );
         this.api.unregisterPlatformAccessories(
           PLUGIN_NAME,
           PLATFORM_NAME,
@@ -136,6 +148,9 @@ export default class NatureRemoIRHomebridgePlatform
     const existingAccessory = this.accessories.find((e) => e.UUID === uuid);
     if (existingAccessory) {
       new Sensor(this, existingAccessory, device);
+      this.logger(
+        `sensor accessory existing: ${existingAccessory.displayName}, ${existingAccessory.UUID}`,
+      );
     } else {
       const accessory = new this.api.platformAccessory(
         device.name,
@@ -143,6 +158,9 @@ export default class NatureRemoIRHomebridgePlatform
         Categories.SENSOR,
       );
       new Sensor(this, accessory, device);
+      this.logger(
+        `aircon accessory register: ${accessory.displayName}, ${accessory.UUID}`,
+      );
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
         accessory,
       ]);
@@ -155,6 +173,9 @@ export default class NatureRemoIRHomebridgePlatform
     const existingAccessory = this.accessories.find((e) => e.UUID === uuid);
     if (existingAccessory) {
       new Aircon(this, existingAccessory, aircon);
+      this.logger(
+        `aircon accessory existing: ${existingAccessory.displayName}, ${existingAccessory.UUID}`,
+      );
     } else {
       const accessory = new this.api.platformAccessory(
         aircon.nickname,
@@ -162,7 +183,10 @@ export default class NatureRemoIRHomebridgePlatform
         Categories.AIR_CONDITIONER,
       );
       new Aircon(this, accessory, aircon);
-      this.api.registerPlatformAccessories(PLATFORM_NAME, PLATFORM_NAME, [
+      this.logger(
+        `aircon accessory register: ${accessory.displayName}, ${accessory.UUID}`,
+      );
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
         accessory,
       ]);
       this.accessories.push(accessory);

@@ -6,7 +6,7 @@ export type Appliance = ApplianceIR | ApplianceAircon | ApplianceQrio;
 export type ApplianceBase = {
   id: string;
   device: InnerDevice;
-  model: Model;
+  model?: Model;
   nickname: string;
   image: string;
 };
@@ -40,7 +40,7 @@ export type Model = {
 
 export type Settings = {
   temp: string;
-  temp_unit: string;
+  temp_unit: TempUnit;
   mode: string;
   vol: string;
   dir: string;
@@ -49,21 +49,7 @@ export type Settings = {
   updated_at: Date;
 };
 
-export type Cool = {
-  temp: string[];
-  dir: string[];
-  dirh: string[];
-  vol: string[];
-};
-
-export type Dry = {
-  temp: string[];
-  dir: string[];
-  dirh: string[];
-  vol: string[];
-};
-
-export type Warm = {
+export type ModeRange = {
   temp: string[];
   dir: string[];
   dirh: string[];
@@ -71,9 +57,7 @@ export type Warm = {
 };
 
 export type Modes = {
-  cool: Cool;
-  dry: Dry;
-  warm: Warm;
+  [key: string]: ModeRange;
 };
 
 export type Range = {
@@ -83,8 +67,10 @@ export type Range = {
 
 export type Aircon = {
   range: Range;
-  tempUnit: string;
+  tempUnit: TempUnit;
 };
+
+type TempUnit = 'c' | 'f';
 
 export type Signal = {
   id: string;
