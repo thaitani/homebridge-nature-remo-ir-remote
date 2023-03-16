@@ -72,6 +72,7 @@ export default class NatureRemoIRHomebridgePlatform
     });
   }
 
+  // APIの結果にないAccessoryを削除する
   checkPlatformAccessories() {
     this.devicesSubject.subscribe((devices) => {
       const uuids = devices.map((device) =>

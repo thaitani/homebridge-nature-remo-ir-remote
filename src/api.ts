@@ -37,7 +37,7 @@ export class NatureRemoApi {
         headers: this.baseHeaders,
         data,
       });
-      this.limitLogging(res);
+      this.limitLogging(res, path);
       return res.data;
     } catch (e) {
       if (!isAxiosError(e)) {
