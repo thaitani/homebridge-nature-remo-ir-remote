@@ -1,6 +1,7 @@
 import {
   API,
   APIEvent,
+  Categories,
   Characteristic,
   DynamicPlatformPlugin,
   Logger,
@@ -10,7 +11,7 @@ import {
   Service,
   UnknownContext,
 } from 'homebridge';
-import { interval, map, Subject } from 'rxjs';
+import { BehaviorSubject, map, timer } from 'rxjs';
 import { NatureRemoApi } from './api';
 
 import { Sensor } from './appliances/sensor';
@@ -28,8 +29,8 @@ export default class NatureRemoIRHomebridgePlatform
 
   public readonly accessories: PlatformAccessory[] = [];
 
-  public readonly appliancesSubject: Subject<Appliance[]> = new Subject();
-  public readonly devicesSubject: Subject<Device[]> = new Subject();
+  public readonly appliancesSubject = new BehaviorSubject<Appliance[]>([]);
+  public readonly devicesSubject = new BehaviorSubject<Device[]>([]);
 
   public readonly natureRemoApi = new NatureRemoApi(
     this.config.token,
@@ -45,7 +46,7 @@ export default class NatureRemoIRHomebridgePlatform
   ) {
     this.logger(`Finished initializing platform: ${this.config.name}`);
 
-    interval((this.config.appliancesRefreshRate ?? 300) * 1000)
+    timer(0, (this.config.appliancesRefreshRate ?? 300) * 1000)
       .pipe(map(() => this.natureRemoApi.getAppliances()))
       .subscribe(async (newValue) => {
         const appliances = await newValue;
@@ -53,7 +54,7 @@ export default class NatureRemoIRHomebridgePlatform
           this.appliancesSubject.next(appliances);
         }
       });
-    interval((this.config.devicesRefreshRate ?? 300) * 1000)
+    timer(0, (this.config.devicesRefreshRate ?? 300) * 1000)
       .pipe(map(() => this.natureRemoApi.getDevices()))
       .subscribe(async (newValue) => {
         const devices = await newValue;
@@ -64,19 +65,43 @@ export default class NatureRemoIRHomebridgePlatform
 
     this.api.on(APIEvent.DID_FINISH_LAUNCHING, () => {
       this.logger(`${PLATFORM_NAME} 'didFinishLaunching'`);
+
       this.discoverDevices();
+
+      this.checkPlatformAccessories();
     });
   }
 
-  async discoverDevices() {
-    const devices = await this.natureRemoApi.getDevices();
-    if (devices) {
-      devices.map((e) => {
-        this.createSensor(e);
-      });
-    } else {
-      this.logger('getDevices is not return');
-    }
+  checkPlatformAccessories() {
+    this.devicesSubject.subscribe((devices) => {
+      const uuids = devices.map((device) =>
+        this.api.hap.uuid.generate(device.id),
+      );
+      const notExistsSensors = this.accessories.filter(
+        (accessory) =>
+          accessory.category === Categories.SENSOR &&
+          !uuids.includes(accessory.UUID),
+      );
+      if (notExistsSensors.length > 0) {
+        this.api.unregisterPlatformAccessories(
+          PLUGIN_NAME,
+          PLATFORM_NAME,
+          notExistsSensors,
+        );
+      }
+    });
+  }
+
+  discoverDevices() {
+    this.devicesSubject.subscribe((devices) => {
+      if (devices) {
+        devices.map((e) => {
+          this.createSensor(e);
+        });
+      } else {
+        this.logger('getDevices is not return');
+      }
+    });
   }
 
   createSensor(device: Device) {
@@ -85,7 +110,11 @@ export default class NatureRemoIRHomebridgePlatform
     if (existingAccessory) {
       new Sensor(this, existingAccessory, device);
     } else {
-      const accessory = new this.api.platformAccessory(device.name, uuid);
+      const accessory = new this.api.platformAccessory(
+        device.name,
+        uuid,
+        Categories.SENSOR,
+      );
       new Sensor(this, accessory, device);
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
         accessory,

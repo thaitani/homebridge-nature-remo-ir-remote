@@ -14,7 +14,7 @@ export class Sensor {
     private readonly accessory: PlatformAccessory,
     private readonly device: Device,
   ) {
-    this.log(`setup sensor: ${device.name}`);
+    this.log('setup sensor');
 
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -94,7 +94,7 @@ export class Sensor {
         return;
       }
       this.log(
-        `subscribe device: name=${device.name} te=${device.newest_events.te.val} hu=${device.newest_events.hu?.val} il=${device.newest_events.il?.val}`,
+        `subscribe device: te=${device.newest_events.te.val} hu=${device.newest_events.hu?.val} il=${device.newest_events.il?.val}`,
       );
       this.temperatureService.updateCharacteristic(
         this.platform.Characteristic.CurrentTemperature,
@@ -123,6 +123,6 @@ export class Sensor {
   }
 
   log(message: string, logLevel = LogLevel.DEBUG) {
-    this.logger.log(logLevel, `{sensor} ${message}`);
+    this.logger.log(logLevel, `{sensor:${this.device.name}} ${message}`);
   }
 }
