@@ -86,7 +86,6 @@ export class Sensor {
   subscribe() {
     this.platform.devicesSubject.subscribe((devices) => {
       const device = devices.find((e) => e.id === this.device.id);
-      this.logger.info(device?.name ?? '');
       if (device?.newest_events.hu) {
         this.humidifierService?.updateCharacteristic(
           this.platform.Characteristic.CurrentRelativeHumidity,

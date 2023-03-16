@@ -44,7 +44,6 @@ export class NatureRemoApi {
         this.logger.error('unknown error', e);
         return;
       }
-      this.logger.info(e.request.headers);
       if (e.response?.status === 429) {
         this.limitLogging(e.response, LogLevel.WARN);
         return;
@@ -55,7 +54,7 @@ export class NatureRemoApi {
     }
   }
 
-  limitLogging(res: AxiosResponse, logLevel: LogLevel = LogLevel.INFO) {
+  limitLogging(res: AxiosResponse, logLevel: LogLevel = LogLevel.DEBUG) {
     const limit = res?.headers?.['x-rate-limit-limit'] ?? 0;
     const remaining = res?.headers?.['x-rate-limit-remaining'] ?? 0;
     const reset = res?.headers?.['x-rate-limit-reset'] ?? 0;
