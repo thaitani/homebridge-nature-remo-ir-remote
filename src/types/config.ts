@@ -8,39 +8,39 @@ export interface NatureRemoPlatformConfig extends PlatformConfig {
   appliances: Array<ApplianceConfig>;
 }
 
-type ApplianceConfig = ApplianceAircon | ApplianceIRTV;
+export type ApplianceConfig = ApplianceAircon | ApplianceIRTV;
 
 type ApplianceBase = {
   name: string;
 };
 
-type ApplianceAircon = {
+export type ApplianceAircon = {
   type: 'aircon';
 } & ApplianceBase;
 
-type ApplianceIRTV = {
+export type ApplianceIRTV = {
   type: 'irtv';
   mapping: IRTVMappingConfig;
 } & ApplianceBase;
 
 type IRTVMappingConfig = {
-  active: string;
-  volumeUp: string;
-  volumeDown: string;
-  rewind: string;
-  fastForward: string;
-  nextTrack: string;
-  previousTrack: string;
-  arrowUp: string;
-  arrowDown: string;
-  arrowLeft: string;
-  arrowRight: string;
-  select: string;
-  back: string;
-  exit: string;
-  playPause: string;
-  information: string;
-  inputSource: Array<InputSourceConfig>;
+  active?: string;
+  volumeUp?: string;
+  volumeDown?: string;
+  rewind?: string;
+  fastForward?: string;
+  nextTrack?: string;
+  previousTrack?: string;
+  arrowUp?: string;
+  arrowDown?: string;
+  arrowLeft?: string;
+  arrowRight?: string;
+  select?: string;
+  back?: string;
+  exit?: string;
+  playPause?: string;
+  information?: string;
+  inputSource?: Array<InputSourceConfig>;
 };
 
 type InputSourceConfig = {

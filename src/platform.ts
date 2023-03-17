@@ -12,15 +12,21 @@ import {
   UnknownContext,
 } from 'homebridge';
 import { BehaviorSubject, map, timer } from 'rxjs';
-import { NatureRemoApi } from './api';
+import { INatureRemoApi, NatureRemoApi } from './api';
 import { Aircon } from './appliances/aircon';
+import { IRTV } from './appliances/irtv';
 
 import { Sensor } from './appliances/sensor';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { ApplianceAircon, ApplianceIR } from './types/appliance';
 import { NatureRemoPlatformConfig } from './types/config';
 import { Device } from './types/device';
-import { getCategoryName, isAirconAppliances, isIRAppliances } from './utils';
+import {
+  getCategoryName,
+  isAirconAppliances,
+  isIRAppliances,
+  isIRTVAppliancesConfig,
+} from './utils';
 
 export default class NatureRemoIRHomebridgePlatform
   implements DynamicPlatformPlugin
@@ -38,7 +44,7 @@ export default class NatureRemoIRHomebridgePlatform
   public readonly irAppliancesSubject = new BehaviorSubject<ApplianceIR[]>([]);
   public readonly devicesSubject = new BehaviorSubject<Device[]>([]);
 
-  public readonly natureRemoApi = new NatureRemoApi(
+  public readonly natureRemoApi: INatureRemoApi = new NatureRemoApi(
     this.config.token,
     this.log,
   );
@@ -149,6 +155,25 @@ export default class NatureRemoIRHomebridgePlatform
         ),
       );
     });
+    const irtvConfig = this.safeConfig.appliances?.filter(
+      (e) => e.type === 'irtv',
+    );
+    if (isIRTVAppliancesConfig(irtvConfig)) {
+      irtvConfig.forEach((config) => {
+        this.irAppliancesSubject.subscribe((appliances) => {
+          appliances.forEach((ir) => {
+            if (ir.nickname === config.name) {
+              this.registerPlatformAccessotries(
+                ir.id,
+                ir.nickname,
+                (accessory) => new IRTV(this, accessory, ir, config),
+                Categories.TELEVISION,
+              );
+            }
+          });
+        });
+      });
+    }
   }
 
   registerPlatformAccessotries(

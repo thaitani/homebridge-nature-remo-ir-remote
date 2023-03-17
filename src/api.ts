@@ -4,10 +4,19 @@ import { BASE_URI } from './settings';
 import { Appliance } from './types/appliance';
 import { Device } from './types/device';
 
-export class NatureRemoApi {
-  constructor(public readonly token: string, public readonly logger: Logger) {}
+export interface INatureRemoApi {
+  sendSignal(signal: string): Promise<void>;
+  getDevices(): Promise<Device[] | undefined>;
+  getAppliances(): Promise<Appliance[] | undefined>;
+}
 
-  public readonly baseHeaders = {
+export class NatureRemoApi implements INatureRemoApi {
+  constructor(
+    private readonly token: string,
+    private readonly logger: Logger,
+  ) {}
+
+  private readonly baseHeaders = {
     Authorization: `Bearer ${this.token}`,
     'content-type': 'application/x-www-form-urlencoded',
   };
@@ -16,11 +25,11 @@ export class NatureRemoApi {
     return this._request<void>('POST', `/signals/${signal}/send`);
   }
 
-  getDevices(): Promise<Device[] | undefined> {
+  async getDevices(): Promise<Device[] | undefined> {
     return this._request<Device[]>('GET', '/devices');
   }
 
-  getAppliances(): Promise<Appliance[] | undefined> {
+  async getAppliances(): Promise<Appliance[] | undefined> {
     return this._request<Appliance[]>('GET', '/appliances');
   }
 

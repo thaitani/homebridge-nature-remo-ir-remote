@@ -1,5 +1,6 @@
 import { Categories } from 'homebridge';
 import { Appliance, ApplianceAircon, ApplianceIR } from './types/appliance';
+import { ApplianceConfig, ApplianceIRTV } from './types/config';
 import { InnerDevice } from './types/device';
 
 export const isAirconAppliances = (
@@ -12,6 +13,12 @@ export const isIRAppliances = (
   appliances: Appliance[],
 ): appliances is ApplianceIR[] => {
   return appliances.filter((e) => e.type !== 'IR').length === 0;
+};
+
+export const isIRTVAppliancesConfig = (
+  config: ApplianceConfig[],
+): config is ApplianceIRTV[] => {
+  return config.filter((e) => e.type !== 'irtv').length === 0;
 };
 
 export const isMini = (device?: InnerDevice) => {
