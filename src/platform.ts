@@ -88,6 +88,9 @@ export default class NatureRemoIRHomebridgePlatform
     targets: Array<{ id: string }>,
     category: Categories,
   ) {
+    if (this.accessories.length === 0 || targets.length === 0) {
+      return;
+    }
     const uuids = targets.map((target) =>
       this.api.hap.uuid.generate(target.id),
     );
@@ -132,6 +135,7 @@ export default class NatureRemoIRHomebridgePlatform
           device.id,
           device.name,
           (accessory) => new Sensor(this, accessory, device),
+          Categories.SENSOR,
         ),
       );
     });
@@ -141,6 +145,7 @@ export default class NatureRemoIRHomebridgePlatform
           aircon.id,
           aircon.nickname,
           (accessory) => new Aircon(this, accessory, aircon),
+          Categories.AIR_CONDITIONER,
         ),
       );
     });
@@ -150,6 +155,7 @@ export default class NatureRemoIRHomebridgePlatform
     id: string,
     displayName: string,
     setupAccessory: (accessory: PlatformAccessory) => void,
+    category?: Categories,
   ) {
     const uuid = this.api.hap.uuid.generate(id);
     const existingAccessory = this.accessories.find((e) => e.UUID === uuid);
@@ -159,7 +165,7 @@ export default class NatureRemoIRHomebridgePlatform
       const accessory = new this.api.platformAccessory(
         displayName,
         uuid,
-        Categories.SENSOR,
+        category,
       );
       setupAccessory(accessory);
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
@@ -170,7 +176,11 @@ export default class NatureRemoIRHomebridgePlatform
   }
 
   configureAccessory(accessory: PlatformAccessory<UnknownContext>): void {
-    this.logger(`Configuring accessory ${accessory.displayName}`);
+    this.logger(
+      `Configuring accessory: ${getCategoryName(accessory.category)}, ${
+        accessory.displayName
+      }`,
+    );
     this.accessories.push(accessory);
   }
 
