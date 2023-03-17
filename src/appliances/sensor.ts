@@ -61,6 +61,10 @@ export class Sensor {
           this.platform.Characteristic.CurrentRelativeHumidity,
           device.newest_events.hu!.val,
         );
+      const lightLevel =
+        device.newest_events.il!.val === 0
+          ? 0.0001
+          : device.newest_events.il!.val;
 
       (
         accessory.getService(this.platform.Service.LightSensor) ||
@@ -76,7 +80,7 @@ export class Sensor {
         )
         .updateCharacteristic(
           this.platform.Characteristic.CurrentAmbientLightLevel,
-          device.newest_events.il!.val,
+          lightLevel,
         );
     }
   }
