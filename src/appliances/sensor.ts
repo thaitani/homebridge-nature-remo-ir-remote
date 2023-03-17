@@ -9,8 +9,6 @@ export class Sensor {
     private readonly accessory: PlatformAccessory,
     private readonly device: Device,
   ) {
-    this.log('setup sensor');
-
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Nature')
