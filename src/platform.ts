@@ -13,6 +13,7 @@ import {
 } from 'homebridge';
 import { BehaviorSubject, map, timer } from 'rxjs';
 import { INatureRemoApi, NatureRemoApi } from './api';
+import { ApiMock } from './api.mock';
 import { Aircon } from './appliances/aircon';
 import { IRTV } from './appliances/irtv';
 
@@ -44,10 +45,10 @@ export default class NatureRemoIRHomebridgePlatform
   public readonly irAppliancesSubject = new BehaviorSubject<ApplianceIR[]>([]);
   public readonly devicesSubject = new BehaviorSubject<Device[]>([]);
 
-  public readonly natureRemoApi: INatureRemoApi = new NatureRemoApi(
-    this.config.token,
-    this.log,
-  );
+  public readonly natureRemoApi: INatureRemoApi =
+    process.env.DEBUG === 'test'
+      ? new ApiMock(this.log)
+      : new NatureRemoApi(this.config.token, this.log);
 
   public readonly safeConfig = this.config as NatureRemoPlatformConfig;
 

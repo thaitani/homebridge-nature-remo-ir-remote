@@ -4,16 +4,14 @@ import { Appliance } from './types/appliance';
 import { Device } from './types/device';
 
 export class ApiMock implements INatureRemoApi {
-  constructor(
-    private readonly token: string,
-    private readonly logger: Logger,
-  ) {}
+  constructor(private readonly logger: Logger) {}
 
   async sendSignal(signal: string): Promise<void | undefined> {
-    this.logger.debug(`send signal ${signal}`);
+    this.logger.debug(`{apimock} send signal ${signal}`);
   }
 
   async getDevices(): Promise<Device[] | undefined> {
+    this.logger.debug('{apimock} get devices');
     return [
       {
         name: '寝室',
@@ -69,6 +67,7 @@ export class ApiMock implements INatureRemoApi {
   }
 
   async getAppliances(): Promise<Appliance[] | undefined> {
+    this.logger.debug('{apimock} get appliances');
     return [
       {
         id: '95201d2a-370c-4b27-82d5-3b6fa46639cc',

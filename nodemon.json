@@ -5,6 +5,7 @@
   "exec": "tsc && homebridge -I -D",
   "signal": "SIGTERM",
   "env": {
-    "NODE_OPTIONS": "--trace-warnings"
+    "NODE_OPTIONS": "--trace-warnings",
+    "DEBUG": "test"
   }
 }
