@@ -41,7 +41,7 @@ export type Model = {
 export type Settings = {
   temp: string;
   temp_unit: TempUnit;
-  mode: string;
+  mode: mode;
   vol: string;
   dir: string;
   dirh: string;
@@ -56,8 +56,10 @@ export type ModeRange = {
   vol: string[];
 };
 
+export type mode = 'cool' | 'dry' | 'warm';
+
 export type Modes = {
-  [key: string]: ModeRange;
+  [key in mode]: ModeRange;
 };
 
 export type Range = {
