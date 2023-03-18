@@ -58,17 +58,58 @@ export class Aircon {
       .getCharacteristic(
         this.platform.Characteristic.CurrentHeatingCoolingState,
       )
-      .onSet((value) => {
-        this.settings.currentMode = value;
-        this.log(`CurrentHeaterCoolerState ${value}`);
+      .onGet(() => {
+        if (aircon.settings.button === 'power-off') {
+          return this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
+        }
+        return aircon.settings.mode === 'cool'
+          ? this.platform.Characteristic.CurrentHeatingCoolingState.COOL
+          : aircon.settings.mode === 'warm'
+          ? this.platform.Characteristic.CurrentHeatingCoolingState.HEAT
+          : aircon.settings.mode === 'dry'
+          ? this.platform.Characteristic.CurrentHeatingCoolingState.COOL
+          : this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
       });
 
     // 運転状況変更時
     airconService
       .getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
-      .onSet((value) => {
+      .onSet(async (value) => {
         this.settings.targetMode = value;
-        this.log(`TargetHeaterCoolerState ${this.settings.targetMode}`);
+        let mode = '';
+        let button = '';
+        switch (value) {
+          case this.platform.Characteristic.TargetHeatingCoolingState.AUTO:
+            mode = 'dry';
+            break;
+          case this.platform.Characteristic.TargetHeatingCoolingState.HEAT:
+            mode = 'warm';
+            break;
+          case this.platform.Characteristic.TargetHeatingCoolingState.COOL:
+            mode = 'cool';
+            break;
+          case this.platform.Characteristic.TargetHeatingCoolingState.OFF:
+            mode = this.aircon.settings.mode;
+            button = 'power-off';
+            break;
+        }
+        const res = await this.platform.natureRemoApi.airconSettings(
+          aircon.id,
+          {
+            button,
+            operation_mode: mode,
+            dir: aircon.settings.dir,
+            dirh: aircon.settings.dirh,
+            vol: aircon.settings.vol,
+            temperature: aircon.settings.temp,
+          },
+        );
+        if (res) {
+          this.log(
+            `TargetHeaterCoolerState ${res.button}, ${res.operation_mode}`,
+          );
+          this.settings.targetTemperature = res.temperature;
+        }
       })
       .onGet(() => this.settings.targetMode);
 
@@ -78,9 +119,18 @@ export class Aircon {
       .setProps({
         maxValue: this.maxTemprature(),
         minValue: this.minTemprature(),
+        minStep: 1,
       })
       .onSet((value) => {
         this.settings.targetTemperature = value;
+        this.platform.natureRemoApi.airconSettings(aircon.id, {
+          button: '',
+          temperature: value.toString(),
+          dir: aircon.settings.dir,
+          dirh: aircon.settings.dirh,
+          operation_mode: aircon.settings.mode,
+          vol: aircon.settings.vol,
+        });
         this.log(`TargetTemperature ${value}`);
       })
       .onGet(() => this.settings.targetTemperature);
@@ -92,6 +142,26 @@ export class Aircon {
         minStep: 25,
       })
       .onSet((value) => {
+        const num = Number(value);
+        this.platform.natureRemoApi.airconSettings(aircon.id, {
+          button: '',
+          temperature: aircon.settings.temp,
+          dir: aircon.settings.dir,
+          dirh: aircon.settings.dirh,
+          operation_mode: aircon.settings.mode,
+          vol:
+            num === 0
+              ? 'auto'
+              : num === 25
+              ? '1'
+              : num === 50
+              ? '2'
+              : value === 75
+              ? '3'
+              : value === 100
+              ? '4'
+              : 'auto',
+        });
         this.log(`TargetRelativeHumidity ${value}`);
       });
 

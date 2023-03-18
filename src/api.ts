@@ -4,8 +4,28 @@ import { BASE_URI } from './settings';
 import { Appliance } from './types/appliance';
 import { Device } from './types/device';
 
+export type AirconSettingParams = {
+  button: string;
+  dir: string;
+  dirh: string;
+  operation_mode: string;
+  temperature: string;
+  vol: string;
+};
+
 export interface INatureRemoApi {
   sendSignal(signal: string): Promise<void>;
+  airconSettings(
+    applianceId: string,
+    {
+      button,
+      dir,
+      dirh,
+      operation_mode,
+      temperature,
+      vol,
+    }: AirconSettingParams,
+  ): Promise<AirconSettingParams | undefined>;
   getDevices(): Promise<Device[] | undefined>;
   getAppliances(): Promise<Appliance[] | undefined>;
 }
@@ -20,6 +40,17 @@ export class NatureRemoApi implements INatureRemoApi {
     Authorization: `Bearer ${this.token}`,
     'content-type': 'application/x-www-form-urlencoded',
   };
+
+  async airconSettings(
+    applianceId: string,
+    params: AirconSettingParams,
+  ): Promise<AirconSettingParams | undefined> {
+    return this._request<AirconSettingParams>(
+      'POST',
+      `/appliances/${applianceId}/aircon_settings`,
+      params,
+    );
+  }
 
   sendSignal(signal: string) {
     return this._request<void>('POST', `/signals/${signal}/send`);

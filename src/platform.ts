@@ -1,3 +1,4 @@
+import axios from 'axios';
 import {
   API,
   APIEvent,
@@ -74,6 +75,7 @@ export default class NatureRemoIRHomebridgePlatform
           }
         }
       });
+
     timer(0, (this.config.devicesRefreshRate ?? 300) * 1000)
       .pipe(map(() => this.natureRemoApi.getDevices()))
       .subscribe(async (newValue) => {
@@ -101,15 +103,15 @@ export default class NatureRemoIRHomebridgePlatform
     const uuids = targets.map((target) =>
       this.api.hap.uuid.generate(target.id),
     );
-    const notExistsSensors = this.accessories.filter(
+    const notExistsAccessories = this.accessories.filter(
       (accessory) =>
         accessory.category === category && !uuids.includes(accessory.UUID),
     );
-    if (notExistsSensors.length > 0) {
+    if (notExistsAccessories.length > 0) {
       this.logger(
         `unregister ${getCategoryName(
           category,
-        )} accessories ${notExistsSensors.reduce(
+        )} accessories ${notExistsAccessories.reduce(
           (prev, curr) => `${prev}, ${curr.displayName}`,
           '',
         )}`,
@@ -117,7 +119,7 @@ export default class NatureRemoIRHomebridgePlatform
       this.api.unregisterPlatformAccessories(
         PLUGIN_NAME,
         PLATFORM_NAME,
-        notExistsSensors,
+        notExistsAccessories,
       );
     }
   }
@@ -132,6 +134,9 @@ export default class NatureRemoIRHomebridgePlatform
         appliances,
         Categories.AIR_CONDITIONER,
       );
+    });
+    this.irAppliancesSubject.subscribe((irs) => {
+      this.unregisterPlatformAccessotries(irs, Categories.TELEVISION);
     });
   }
 
