@@ -1,10 +1,10 @@
 import { CharacteristicValue, LogLevel, PlatformAccessory } from 'homebridge';
 import NatureRemoIRHomebridgePlatform from '../platform';
 import { ApplianceAircon, Settings } from '../types/appliance';
+import { AirconSettingParams } from './../api';
 import { getCategoryName } from './../utils';
 
 type AirconSettings = {
-  currentMode: CharacteristicValue;
   targetMode: CharacteristicValue;
   targetTemperature: CharacteristicValue;
   targetVolume: CharacteristicValue;
@@ -77,7 +77,7 @@ export class Aircon {
       .onSet(async (value) => {
         this.settings.targetMode = value;
         let mode = '';
-        let button = '';
+        let button: 'power-off' | '' = '';
         switch (value) {
           case this.platform.Characteristic.TargetHeatingCoolingState.AUTO:
             mode = 'dry';
@@ -93,23 +93,10 @@ export class Aircon {
             button = 'power-off';
             break;
         }
-        const res = await this.platform.natureRemoApi.airconSettings(
-          aircon.id,
-          {
-            button,
-            operation_mode: mode,
-            dir: aircon.settings.dir,
-            dirh: aircon.settings.dirh,
-            vol: aircon.settings.vol,
-            temperature: aircon.settings.temp,
-          },
-        );
-        if (res) {
-          this.log(
-            `TargetHeaterCoolerState ${res.button}, ${res.operation_mode}`,
-          );
-          this.settings.targetTemperature = res.temperature;
-        }
+        this.sendAirconSetting({
+          operation_mode: mode,
+          button,
+        });
       })
       .onGet(() => this.settings.targetMode);
 
@@ -117,8 +104,8 @@ export class Aircon {
     airconService
       .getCharacteristic(this.platform.Characteristic.TargetTemperature)
       .setProps({
-        maxValue: this.maxTemprature(),
-        minValue: this.minTemprature(),
+        maxValue: this.maxTemperature(),
+        minValue: this.minTemperature(),
         minStep: 1,
       })
       .onSet((value) => {
@@ -129,7 +116,7 @@ export class Aircon {
           dir: aircon.settings.dir,
           dirh: aircon.settings.dirh,
           operation_mode: aircon.settings.mode,
-          vol: aircon.settings.vol,
+          volume: aircon.settings.vol,
         });
         this.log(`TargetTemperature ${value}`);
       })
@@ -149,7 +136,7 @@ export class Aircon {
           dir: aircon.settings.dir,
           dirh: aircon.settings.dirh,
           operation_mode: aircon.settings.mode,
-          vol:
+          volume:
             num === 0
               ? 'auto'
               : num === 25
@@ -190,7 +177,7 @@ export class Aircon {
     });
   }
 
-  minTemprature(): number {
+  minTemperature(): number {
     const modes = Object.values(this.aircon.aircon.range.modes);
     return modes.reduce((prev, curr) => {
       const minInKey = Math.min(...curr.temp.map((e) => Number(e)));
@@ -204,7 +191,7 @@ export class Aircon {
     }, 0);
   }
 
-  maxTemprature(): number {
+  maxTemperature(): number {
     const modes = Object.values(this.aircon.aircon.range.modes);
     return modes.reduce((prev, curr) => {
       const minInKey = Math.max(...curr.temp.map((e) => Number(e)));
@@ -214,9 +201,8 @@ export class Aircon {
 
   fromSettings(settings: Settings): AirconSettings {
     let targetMode: CharacteristicValue;
-    let currentMode: CharacteristicValue;
     const targetTemperature =
-      settings.temp === '0' ? this.minTemprature() : settings.temp;
+      settings.temp === '0' ? this.minTemperature() : settings.temp;
 
     const targetVolume = this.volumeMapping[settings.vol] ?? 0;
     const tempUnit =
@@ -224,10 +210,8 @@ export class Aircon {
         ? this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS
         : this.platform.Characteristic.TemperatureDisplayUnits.FAHRENHEIT;
     if (settings.button === 'power-off') {
-      currentMode = this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
       targetMode = this.platform.Characteristic.TargetHeatingCoolingState.OFF;
       return {
-        currentMode,
         targetMode,
         targetTemperature,
         tempUnit,
@@ -237,31 +221,34 @@ export class Aircon {
 
     switch (settings.mode) {
       case 'warm':
-        currentMode =
-          this.platform.Characteristic.CurrentHeatingCoolingState.HEAT;
         targetMode =
           this.platform.Characteristic.TargetHeatingCoolingState.HEAT;
         break;
       case 'cool':
-        currentMode =
-          this.platform.Characteristic.CurrentHeatingCoolingState.COOL;
         targetMode =
           this.platform.Characteristic.TargetHeatingCoolingState.COOL;
         break;
       case 'dry':
-        currentMode =
-          this.platform.Characteristic.CurrentHeatingCoolingState.COOL;
         targetMode =
           this.platform.Characteristic.TargetHeatingCoolingState.AUTO;
         break;
     }
     return {
       targetMode,
-      currentMode,
       targetTemperature,
       tempUnit,
       targetVolume,
     };
+  }
+
+  async sendAirconSetting(params: AirconSettingParams): Promise<void> {
+    const res = await this.platform.natureRemoApi.airconSettings(
+      this.aircon.id,
+      params,
+    );
+    if (res) {
+      this.settings = this.fromSettings(res);
+    }
   }
 
   log(message: string, logLevel = LogLevel.DEBUG) {

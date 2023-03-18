@@ -1,31 +1,26 @@
 import axios, { AxiosResponse, isAxiosError } from 'axios';
-import { Logger, LogLevel } from 'homebridge';
+import { LogLevel, Logger } from 'homebridge';
 import { BASE_URI } from './settings';
-import { Appliance } from './types/appliance';
+import { Appliance, Settings } from './types/appliance';
 import { Device } from './types/device';
 
 export type AirconSettingParams = {
-  button: string;
-  dir: string;
-  dirh: string;
-  operation_mode: string;
-  temperature: string;
-  vol: string;
+  button: 'power-off' | '';
+  dir?: string;
+  dirh?: string;
+  operation_mode?: string;
+  temperature?: string;
+  volume?: string;
 };
+
+export type AirconSettingsResponse = Settings;
 
 export interface INatureRemoApi {
   sendSignal(signal: string): Promise<void>;
   airconSettings(
     applianceId: string,
-    {
-      button,
-      dir,
-      dirh,
-      operation_mode,
-      temperature,
-      vol,
-    }: AirconSettingParams,
-  ): Promise<AirconSettingParams | undefined>;
+    params: AirconSettingParams,
+  ): Promise<AirconSettingsResponse | undefined>;
   getDevices(): Promise<Device[] | undefined>;
   getAppliances(): Promise<Appliance[] | undefined>;
 }
@@ -44,8 +39,8 @@ export class NatureRemoApi implements INatureRemoApi {
   async airconSettings(
     applianceId: string,
     params: AirconSettingParams,
-  ): Promise<AirconSettingParams | undefined> {
-    return this._request<AirconSettingParams>(
+  ): Promise<AirconSettingsResponse | undefined> {
+    return this._request<AirconSettingsResponse>(
       'POST',
       `/appliances/${applianceId}/aircon_settings`,
       params,

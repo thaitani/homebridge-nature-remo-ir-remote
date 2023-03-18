@@ -1,15 +1,22 @@
 import { Logger } from 'homebridge';
-import { AirconSettingParams, INatureRemoApi } from './api';
+import {
+  AirconSettingParams,
+  AirconSettingsResponse,
+  INatureRemoApi,
+} from './api';
 import { Appliance } from './types/appliance';
 import { Device } from './types/device';
 
 export class ApiMock implements INatureRemoApi {
   constructor(private readonly logger: Logger) {}
-  async airconSettings(applianceId: string, params: AirconSettingParams) {
+  async airconSettings(
+    applianceId: string,
+    params: AirconSettingParams,
+  ): Promise<AirconSettingsResponse | undefined> {
     this.logger.debug(
-      `{apimock} aircon settings ${applianceId}, ${params.button}, ${params.dir}, ${params.dirh} ${params.operation_mode}, ${params.temperature}, ${params.vol}`,
+      `{apimock} aircon settings ${applianceId}, ${params.button}, ${params.dir}, ${params.dirh} ${params.operation_mode}, ${params.temperature}, ${params.volume}`,
     );
-    return params;
+    return;
   }
 
   async sendSignal(signal: string): Promise<void | undefined> {
