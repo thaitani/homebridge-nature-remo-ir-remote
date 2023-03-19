@@ -1,4 +1,3 @@
-import axios from 'axios';
 import {
   API,
   APIEvent,
@@ -93,7 +92,7 @@ export default class NatureRemoIRHomebridgePlatform
     });
   }
 
-  unregisterPlatformAccessotries(
+  unregisterPlatformAccessories(
     targets: Array<{ id: string }>,
     category: Categories,
   ) {
@@ -127,23 +126,23 @@ export default class NatureRemoIRHomebridgePlatform
   // APIの結果にないAccessoryを削除する
   checkPlatformAccessories() {
     this.devicesSubject.subscribe((devices) => {
-      this.unregisterPlatformAccessotries(devices, Categories.SENSOR);
+      this.unregisterPlatformAccessories(devices, Categories.SENSOR);
     });
     this.airconAppliancesSubject.subscribe((appliances) => {
-      this.unregisterPlatformAccessotries(
+      this.unregisterPlatformAccessories(
         appliances,
         Categories.AIR_CONDITIONER,
       );
     });
     this.irAppliancesSubject.subscribe((irs) => {
-      this.unregisterPlatformAccessotries(irs, Categories.TELEVISION);
+      this.unregisterPlatformAccessories(irs, Categories.TELEVISION);
     });
   }
 
   discoverDevices() {
     this.devicesSubject.subscribe((devices) => {
       devices.forEach((device) =>
-        this.registerPlatformAccessotries(
+        this.registerPlatformAccessories(
           device.id,
           device.name,
           (accessory) => new Sensor(this, accessory, device),
@@ -153,7 +152,7 @@ export default class NatureRemoIRHomebridgePlatform
     });
     this.airconAppliancesSubject.subscribe((appliances) => {
       appliances.forEach((aircon) =>
-        this.registerPlatformAccessotries(
+        this.registerPlatformAccessories(
           aircon.id,
           aircon.nickname,
           (accessory) => new Aircon(this, accessory, aircon),
@@ -169,7 +168,7 @@ export default class NatureRemoIRHomebridgePlatform
         this.irAppliancesSubject.subscribe((appliances) => {
           appliances.forEach((ir) => {
             if (ir.nickname === config.name) {
-              this.registerPlatformAccessotries(
+              this.registerPlatformAccessories(
                 ir.id,
                 ir.nickname,
                 (accessory) => new IRTV(this, accessory, ir, config),
@@ -182,7 +181,7 @@ export default class NatureRemoIRHomebridgePlatform
     }
   }
 
-  registerPlatformAccessotries(
+  registerPlatformAccessories(
     id: string,
     displayName: string,
     setupAccessory: (accessory: PlatformAccessory) => void,
