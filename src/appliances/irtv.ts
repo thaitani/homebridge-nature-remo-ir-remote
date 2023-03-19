@@ -1,16 +1,17 @@
-import { LogLevel, PlatformAccessory } from 'homebridge';
-import NatureRemoIRHomebridgePlatform from '../platform';
+import { PlatformAccessory } from 'homebridge';
+import NatureRemoRemotePlatform from '../platform';
 import { ApplianceIR } from '../types/appliance';
 import { ApplianceIRTV } from '../types/config';
-import { getCategoryName } from './../utils';
+import { NatureRemoAccessory } from './base';
 
-export class IRTV {
+export class IRTV extends NatureRemoAccessory {
   constructor(
-    private readonly platform: NatureRemoIRHomebridgePlatform,
-    private readonly accessory: PlatformAccessory,
-    private readonly ir: ApplianceIR,
-    private readonly irTVConfig: ApplianceIRTV,
+    protected readonly platform: NatureRemoRemotePlatform,
+    protected readonly accessory: PlatformAccessory,
+    protected readonly ir: ApplianceIR,
+    protected readonly irTVConfig: ApplianceIRTV,
   ) {
+    super();
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Nature')
@@ -139,14 +140,5 @@ export class IRTV {
     if (signal) {
       this.platform.natureRemoApi.sendSignal(signal);
     }
-  }
-
-  log(message: string, logLevel = LogLevel.DEBUG) {
-    this.platform.log.log(
-      logLevel,
-      `{${getCategoryName(this.accessory.category)}:${
-        this.ir.nickname
-      }} ${message}`,
-    );
   }
 }

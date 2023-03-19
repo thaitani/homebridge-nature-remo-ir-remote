@@ -1,8 +1,8 @@
-import { CharacteristicValue, LogLevel, PlatformAccessory } from 'homebridge';
-import NatureRemoIRHomebridgePlatform from '../platform';
+import { CharacteristicValue, PlatformAccessory } from 'homebridge';
+import NatureRemoRemotePlatform from '../platform';
 import { ApplianceAircon, Settings } from '../types/appliance';
 import { AirconSettingParams } from './../api';
-import { getCategoryName } from './../utils';
+import { NatureRemoAccessory } from './base';
 
 type AirconSettings = {
   targetMode: CharacteristicValue;
@@ -11,7 +11,7 @@ type AirconSettings = {
   tempUnit: CharacteristicValue;
 };
 
-export class Aircon {
+export class Aircon extends NatureRemoAccessory {
   private settings: AirconSettings;
 
   // settings.vol と TargetRelativeHumidity を対応付け
@@ -25,10 +25,11 @@ export class Aircon {
   } as const;
 
   constructor(
-    private readonly platform: NatureRemoIRHomebridgePlatform,
-    private readonly accessory: PlatformAccessory,
-    private readonly aircon: ApplianceAircon,
+    protected readonly platform: NatureRemoRemotePlatform,
+    protected readonly accessory: PlatformAccessory,
+    protected readonly aircon: ApplianceAircon,
   ) {
+    super();
     this.settings = this.fromSettings(aircon.settings);
 
     // 基本設定
@@ -249,14 +250,5 @@ export class Aircon {
     if (res) {
       this.settings = this.fromSettings(res);
     }
-  }
-
-  log(message: string, logLevel = LogLevel.DEBUG) {
-    this.platform.log.log(
-      logLevel,
-      `{${getCategoryName(this.accessory.category)}:${
-        this.aircon.nickname
-      }} ${message}`,
-    );
   }
 }

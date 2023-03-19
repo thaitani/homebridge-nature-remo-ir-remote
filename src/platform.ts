@@ -2,13 +2,11 @@ import {
   API,
   APIEvent,
   Categories,
-  Characteristic,
   DynamicPlatformPlugin,
   Logger,
   LogLevel,
   PlatformAccessory,
   PlatformConfig,
-  Service,
   UnknownContext,
 } from 'homebridge';
 import { BehaviorSubject, map, timer } from 'rxjs';
@@ -20,21 +18,13 @@ import { IRTV } from './appliances/irtv';
 import { Sensor } from './appliances/sensor';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { ApplianceAircon, ApplianceIR } from './types/appliance';
-import { NatureRemoPlatformConfig } from './types/config';
+import { ApplianceIRTV, NatureRemoPlatformConfig } from './types/config';
 import { Device } from './types/device';
-import {
-  getCategoryName,
-  isAirconAppliances,
-  isIRAppliances,
-  isIRTVAppliancesConfig,
-} from './utils';
+import { getCategoryName } from './utils';
 
-export default class NatureRemoIRHomebridgePlatform
-  implements DynamicPlatformPlugin
-{
-  public readonly Service: typeof Service = this.api.hap.Service;
-  public readonly Characteristic: typeof Characteristic =
-    this.api.hap.Characteristic;
+export default class NatureRemoRemotePlatform implements DynamicPlatformPlugin {
+  public readonly Service = this.api.hap.Service;
+  public readonly Characteristic = this.api.hap.Characteristic;
 
   public readonly accessories: PlatformAccessory[] = [];
 
@@ -47,35 +37,36 @@ export default class NatureRemoIRHomebridgePlatform
 
   public readonly natureRemoApi: INatureRemoApi =
     process.env.DEBUG === 'test'
-      ? new ApiMock(this.log)
-      : new NatureRemoApi(this.config.token, this.log);
+      ? new ApiMock(this.logger)
+      : new NatureRemoApi(this.config.token, this.logger);
 
   public readonly safeConfig = this.config as NatureRemoPlatformConfig;
 
   constructor(
-    public readonly log: Logger,
+    public readonly logger: Logger,
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
-    this.logger(`Finished initializing platform: ${this.config.name}`);
+    this.log(`Finished initializing platform: ${this.config.name}`);
 
     timer(0, (this.config.appliancesRefreshRate ?? 300) * 1000)
       .pipe(map(() => this.natureRemoApi.getAppliances()))
       .subscribe(async (newValue) => {
         const appliances = await newValue;
         if (appliances) {
-          const ac = appliances.filter((e) => e.type === 'AC');
-          if (isAirconAppliances(ac)) {
-            this.airconAppliancesSubject.next(ac);
-          }
-          const ir = appliances.filter((e) => e.type === 'IR');
-          if (isIRAppliances(ir)) {
-            this.irAppliancesSubject.next(ir);
-          }
+          const ac = appliances.filter(
+            (e): e is ApplianceAircon => e.type === 'AC',
+          );
+          this.airconAppliancesSubject.next(ac);
+
+          const ir = appliances.filter(
+            (e): e is ApplianceIR => e.type === 'IR',
+          );
+          this.irAppliancesSubject.next(ir);
         }
       });
 
-    timer(0, (this.config.devicesRefreshRate ?? 300) * 1000)
+    timer(0, (this.safeConfig.devicesRefreshRate ?? 300) * 1000)
       .pipe(map(() => this.natureRemoApi.getDevices()))
       .subscribe(async (newValue) => {
         const devices = await newValue;
@@ -85,57 +76,10 @@ export default class NatureRemoIRHomebridgePlatform
       });
 
     this.api.on(APIEvent.DID_FINISH_LAUNCHING, () => {
-      this.logger(`${PLATFORM_NAME} 'didFinishLaunching'`);
+      this.log(`${PLATFORM_NAME} 'didFinishLaunching'`);
 
       this.discoverDevices();
-      this.checkPlatformAccessories();
-    });
-  }
-
-  unregisterPlatformAccessories(
-    targets: Array<{ id: string }>,
-    category: Categories,
-  ) {
-    if (this.accessories.length === 0 || targets.length === 0) {
-      return;
-    }
-    const uuids = targets.map((target) =>
-      this.api.hap.uuid.generate(target.id),
-    );
-    const notExistsAccessories = this.accessories.filter(
-      (accessory) =>
-        accessory.category === category && !uuids.includes(accessory.UUID),
-    );
-    if (notExistsAccessories.length > 0) {
-      this.logger(
-        `unregister ${getCategoryName(
-          category,
-        )} accessories ${notExistsAccessories.reduce(
-          (prev, curr) => `${prev}, ${curr.displayName}`,
-          '',
-        )}`,
-      );
-      this.api.unregisterPlatformAccessories(
-        PLUGIN_NAME,
-        PLATFORM_NAME,
-        notExistsAccessories,
-      );
-    }
-  }
-
-  // APIの結果にないAccessoryを削除する
-  checkPlatformAccessories() {
-    this.devicesSubject.subscribe((devices) => {
-      this.unregisterPlatformAccessories(devices, Categories.SENSOR);
-    });
-    this.airconAppliancesSubject.subscribe((appliances) => {
-      this.unregisterPlatformAccessories(
-        appliances,
-        Categories.AIR_CONDITIONER,
-      );
-    });
-    this.irAppliancesSubject.subscribe((irs) => {
-      this.unregisterPlatformAccessories(irs, Categories.TELEVISION);
+      this.unregisterPlatformAccessories();
     });
   }
 
@@ -161,24 +105,22 @@ export default class NatureRemoIRHomebridgePlatform
       );
     });
     const irtvConfig = this.safeConfig.appliances?.filter(
-      (e) => e.type === 'irtv',
+      (e): e is ApplianceIRTV => e.type === 'irtv',
     );
-    if (isIRTVAppliancesConfig(irtvConfig)) {
-      irtvConfig.forEach((config) => {
-        this.irAppliancesSubject.subscribe((appliances) => {
-          appliances.forEach((ir) => {
-            if (ir.nickname === config.name) {
-              this.registerPlatformAccessories(
-                ir.id,
-                ir.nickname,
-                (accessory) => new IRTV(this, accessory, ir, config),
-                Categories.TELEVISION,
-              );
-            }
-          });
+    irtvConfig?.forEach((config) => {
+      this.irAppliancesSubject.subscribe((appliances) => {
+        appliances.forEach((ir) => {
+          if (ir.nickname === config.name) {
+            this.registerPlatformAccessories(
+              ir.id,
+              ir.nickname,
+              (accessory) => new IRTV(this, accessory, ir, config),
+              Categories.TELEVISION,
+            );
+          }
         });
       });
-    }
+    });
   }
 
   registerPlatformAccessories(
@@ -205,8 +147,52 @@ export default class NatureRemoIRHomebridgePlatform
     }
   }
 
+  // APIの結果にないAccessoryを削除する
+  unregisterPlatformAccessories() {
+    this.devicesSubject.subscribe((devices) => {
+      this.unregisterPlatformAccessory(devices, Categories.SENSOR);
+    });
+    this.airconAppliancesSubject.subscribe((appliances) => {
+      this.unregisterPlatformAccessory(appliances, Categories.AIR_CONDITIONER);
+    });
+    this.irAppliancesSubject.subscribe((irs) => {
+      this.unregisterPlatformAccessory(irs, Categories.TELEVISION);
+    });
+  }
+
+  unregisterPlatformAccessory(
+    targets: Array<{ id: string }>,
+    category: Categories,
+  ) {
+    if (this.accessories.length === 0 || targets.length === 0) {
+      return;
+    }
+    const uuids = targets.map((target) =>
+      this.api.hap.uuid.generate(target.id),
+    );
+    const notExistsAccessories = this.accessories.filter(
+      (accessory) =>
+        accessory.category === category && !uuids.includes(accessory.UUID),
+    );
+    if (notExistsAccessories.length > 0) {
+      this.log(
+        `unregister ${getCategoryName(
+          category,
+        )} accessories ${notExistsAccessories.reduce(
+          (prev, curr) => `${prev}, ${curr.displayName}`,
+          '',
+        )}`,
+      );
+      this.api.unregisterPlatformAccessories(
+        PLUGIN_NAME,
+        PLATFORM_NAME,
+        notExistsAccessories,
+      );
+    }
+  }
+
   configureAccessory(accessory: PlatformAccessory<UnknownContext>): void {
-    this.logger(
+    this.log(
       `Configuring accessory: ${getCategoryName(accessory.category)}, ${
         accessory.displayName
       }`,
@@ -214,7 +200,7 @@ export default class NatureRemoIRHomebridgePlatform
     this.accessories.push(accessory);
   }
 
-  logger(message: string, logLevel = LogLevel.DEBUG) {
-    this.log.log(logLevel, `{platform} ${message}`);
+  log(message: string, logLevel = LogLevel.DEBUG) {
+    this.logger.log(logLevel, `{platform} ${message}`);
   }
 }

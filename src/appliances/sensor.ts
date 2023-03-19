@@ -1,14 +1,16 @@
-import { LogLevel, PlatformAccessory } from 'homebridge';
-import NatureRemoIRHomebridgePlatform from '../platform';
+import { PlatformAccessory } from 'homebridge';
+import NatureRemoRemotePlatform from '../platform';
 import { Device } from '../types/device';
-import { getCategoryName, isNotMini } from '../utils';
+import { isNotMini } from '../utils';
+import { NatureRemoAccessory } from './base';
 
-export class Sensor {
+export class Sensor extends NatureRemoAccessory {
   constructor(
-    private readonly platform: NatureRemoIRHomebridgePlatform,
-    private readonly accessory: PlatformAccessory,
-    private readonly device: Device,
+    protected readonly platform: NatureRemoRemotePlatform,
+    protected readonly accessory: PlatformAccessory,
+    protected readonly device: Device,
   ) {
+    super();
     accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Nature')
@@ -81,14 +83,5 @@ export class Sensor {
           lightLevel,
         );
     }
-  }
-
-  log(message: string, logLevel = LogLevel.DEBUG) {
-    this.platform.log.log(
-      logLevel,
-      `{${getCategoryName(this.accessory.category)}:${
-        this.device.name
-      }} ${message}`,
-    );
   }
 }
