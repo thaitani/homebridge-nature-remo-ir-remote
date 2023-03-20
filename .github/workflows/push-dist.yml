@@ -1,0 +1,56 @@
+name: publish
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.15.3'
+
+      - name: Install
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Prepare Publish Contents
+        run: |
+          mkdir publish
+          cp -r dist publish
+          cp -r src publish
+          cp package.json publish
+
+      - name: Prepare tag
+        id: prepare_tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "DEPLOY_TAG_NAME=dist-${TAG_NAME}" >> "${GITHUB_OUTPUT}"
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+
+      - name: Publish
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./publish
+          publish_branch: dist
+          tag_name: ${{ steps.prepare_tag.outputs.DEPLOY_TAG_NAME }}
+          tag_message: 'Publication ${{ github.ref_name }}'
