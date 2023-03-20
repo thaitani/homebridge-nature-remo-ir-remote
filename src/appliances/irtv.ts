@@ -11,93 +11,79 @@ export class IRTV extends NatureRemoAccessory {
     protected readonly ir: ApplianceIR,
     protected readonly irTVConfig: ApplianceIRTV,
   ) {
-    super();
-    accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Nature')
-      .setCharacteristic(this.platform.Characteristic.Model, ir.device.name)
-      .setCharacteristic(
-        this.platform.Characteristic.SerialNumber,
-        ir.device.serial_number,
-      )
-      .setCharacteristic(
-        this.platform.Characteristic.FirmwareRevision,
-        ir.device.firmware_version,
-      );
+    super(platform, accessory);
+    this.setAccessoryInformation({
+      manufacturer: 'Nature',
+      model: ir.device.name,
+      serialNumber: ir.device.serial_number,
+      firmwareRevision: ir.device.firmware_version,
+    });
 
     const tvService = (
-      accessory.getService(this.platform.Service.Television) ||
-      accessory.addService(this.platform.Service.Television)
+      accessory.getService(super.Service.Television) ||
+      accessory.addService(super.Service.Television)
     )
-      .setCharacteristic(this.platform.Characteristic.Name, ir.nickname)
-      .setCharacteristic(
-        this.platform.Characteristic.ConfiguredName,
-        ir.nickname,
-      );
-    tvService.setCharacteristic(
-      this.platform.Characteristic.ActiveIdentifier,
-      1,
-    );
+      .setCharacteristic(super.Characteristic.Name, ir.nickname)
+      .setCharacteristic(super.Characteristic.ConfiguredName, ir.nickname)
+      .setCharacteristic(super.Characteristic.ActiveIdentifier, 1);
+
+    tvService.getCharacteristic(super.Characteristic.Active).onSet(() => {
+      this.sendSignal('active');
+    });
 
     tvService
-      .getCharacteristic(this.platform.Characteristic.Active)
-      .onSet(() => {
-        this.sendSignal('active');
-      });
-
-    tvService
-      .getCharacteristic(this.platform.Characteristic.RemoteKey)
+      .getCharacteristic(super.Characteristic.RemoteKey)
       .onSet((newValue) => {
         switch (newValue) {
-          case this.platform.Characteristic.RemoteKey.REWIND: {
+          case super.Characteristic.RemoteKey.REWIND: {
             this.sendSignal('rewind');
             break;
           }
-          case this.platform.Characteristic.RemoteKey.FAST_FORWARD: {
+          case super.Characteristic.RemoteKey.FAST_FORWARD: {
             this.sendSignal('fastForward');
             break;
           }
-          case this.platform.Characteristic.RemoteKey.NEXT_TRACK: {
+          case super.Characteristic.RemoteKey.NEXT_TRACK: {
             this.sendSignal('nextTrack');
             break;
           }
-          case this.platform.Characteristic.RemoteKey.PREVIOUS_TRACK: {
+          case super.Characteristic.RemoteKey.PREVIOUS_TRACK: {
             this.sendSignal('previousTrack');
             break;
           }
-          case this.platform.Characteristic.RemoteKey.ARROW_UP: {
+          case super.Characteristic.RemoteKey.ARROW_UP: {
             this.sendSignal('arrowUp');
             break;
           }
-          case this.platform.Characteristic.RemoteKey.ARROW_DOWN: {
+          case super.Characteristic.RemoteKey.ARROW_DOWN: {
             this.sendSignal('arrowDown');
             break;
           }
-          case this.platform.Characteristic.RemoteKey.ARROW_LEFT: {
+          case super.Characteristic.RemoteKey.ARROW_LEFT: {
             this.sendSignal('arrowLeft');
             break;
           }
-          case this.platform.Characteristic.RemoteKey.ARROW_RIGHT: {
+          case super.Characteristic.RemoteKey.ARROW_RIGHT: {
             this.sendSignal('arrowRight');
             break;
           }
-          case this.platform.Characteristic.RemoteKey.SELECT: {
+          case super.Characteristic.RemoteKey.SELECT: {
             this.sendSignal('select');
             break;
           }
-          case this.platform.Characteristic.RemoteKey.BACK: {
+          case super.Characteristic.RemoteKey.BACK: {
             this.sendSignal('back');
             break;
           }
-          case this.platform.Characteristic.RemoteKey.EXIT: {
+          case super.Characteristic.RemoteKey.EXIT: {
             this.sendSignal('exit');
             break;
           }
-          case this.platform.Characteristic.RemoteKey.PLAY_PAUSE: {
+          case super.Characteristic.RemoteKey.PLAY_PAUSE: {
             this.sendSignal('playPause');
             break;
           }
-          case this.platform.Characteristic.RemoteKey.INFORMATION: {
+          case super.Characteristic.RemoteKey.INFORMATION: {
             this.sendSignal('information');
             break;
           }
@@ -105,27 +91,24 @@ export class IRTV extends NatureRemoAccessory {
       });
 
     const speakerService =
-      accessory.getService(this.platform.Service.TelevisionSpeaker) ||
-      accessory.addService(this.platform.Service.TelevisionSpeaker);
+      accessory.getService(super.Service.TelevisionSpeaker) ||
+      accessory.addService(super.Service.TelevisionSpeaker);
 
     speakerService
       .setCharacteristic(
-        this.platform.Characteristic.Active,
-        this.platform.Characteristic.Active.ACTIVE,
+        super.Characteristic.Active,
+        super.Characteristic.Active.ACTIVE,
       )
       .setCharacteristic(
-        this.platform.Characteristic.VolumeControlType,
-        this.platform.Characteristic.VolumeControlType.ABSOLUTE,
+        super.Characteristic.VolumeControlType,
+        super.Characteristic.VolumeControlType.ABSOLUTE,
       );
 
     // handle volume control
     speakerService
-      .getCharacteristic(this.platform.Characteristic.VolumeSelector)
+      .getCharacteristic(super.Characteristic.VolumeSelector)
       .onSet((newValue) => {
-        if (
-          newValue === this.platform.Characteristic.VolumeSelector.INCREMENT
-        ) {
-          this.log('volumeUp');
+        if (newValue === super.Characteristic.VolumeSelector.INCREMENT) {
           this.sendSignal('volumeUp');
         } else {
           this.sendSignal('volumeDown');
@@ -138,7 +121,7 @@ export class IRTV extends NatureRemoAccessory {
     const signal = this.ir.signals.find((e) => e.name === targetName)?.id;
     this.log('target' + signal ?? 'not signal');
     if (signal) {
-      this.platform.natureRemoApi.sendSignal(signal);
+      super.natureRemoApi.sendSignal(signal);
     }
   }
 }

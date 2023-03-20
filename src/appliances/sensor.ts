@@ -10,55 +10,46 @@ export class Sensor extends NatureRemoAccessory {
     protected readonly accessory: PlatformAccessory,
     protected readonly device: Device,
   ) {
-    super();
-    accessory
-      .getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Nature')
-      .setCharacteristic(
-        this.platform.Characteristic.Model,
-        device.firmware_version.split('/')[0],
-      )
-      .setCharacteristic(
-        this.platform.Characteristic.SerialNumber,
-        device.serial_number,
-      )
-      .setCharacteristic(
-        this.platform.Characteristic.FirmwareRevision,
-        device.firmware_version,
-      );
+    super(platform, accessory);
+    this.setAccessoryInformation({
+      manufacturer: 'Nature',
+      model: device.firmware_version.split('/')[0],
+      serialNumber: device.serial_number,
+      firmwareRevision: device.firmware_version,
+    });
 
     (
-      accessory.getService(this.platform.Service.TemperatureSensor) ||
-      accessory.addService(this.platform.Service.TemperatureSensor)
+      accessory.getService(super.Service.TemperatureSensor) ||
+      accessory.addService(super.Service.TemperatureSensor)
     )
       .setCharacteristic(
-        this.platform.Characteristic.Name,
+        super.Characteristic.Name,
         `${this.device.name} 温度計`,
       )
       .setCharacteristic(
-        this.platform.Characteristic.ConfiguredName,
+        super.Characteristic.ConfiguredName,
         `${this.device.name} 温度計`,
       )
       .updateCharacteristic(
-        this.platform.Characteristic.CurrentTemperature,
+        super.Characteristic.CurrentTemperature,
         device.newest_events.te.val,
       );
 
     if (isNotMini(device)) {
       (
-        accessory.getService(this.platform.Service.HumiditySensor) ||
-        accessory.addService(this.platform.Service.HumiditySensor)
+        accessory.getService(super.Service.HumiditySensor) ||
+        accessory.addService(super.Service.HumiditySensor)
       )
         .setCharacteristic(
-          this.platform.Characteristic.Name,
+          super.Characteristic.Name,
           `${this.device.name} 湿度計`,
         )
         .setCharacteristic(
-          this.platform.Characteristic.ConfiguredName,
+          super.Characteristic.ConfiguredName,
           `${this.device.name} 湿度計`,
         )
         .updateCharacteristic(
-          this.platform.Characteristic.CurrentRelativeHumidity,
+          super.Characteristic.CurrentRelativeHumidity,
           device.newest_events.hu!.val,
         );
       const lightLevel =
@@ -67,19 +58,19 @@ export class Sensor extends NatureRemoAccessory {
           : device.newest_events.il!.val;
 
       (
-        accessory.getService(this.platform.Service.LightSensor) ||
-        accessory.addService(this.platform.Service.LightSensor)
+        accessory.getService(super.Service.LightSensor) ||
+        accessory.addService(super.Service.LightSensor)
       )
         .setCharacteristic(
-          this.platform.Characteristic.Name,
+          super.Characteristic.Name,
           `${this.device.name} 照度計`,
         )
         .setCharacteristic(
-          this.platform.Characteristic.ConfiguredName,
+          super.Characteristic.ConfiguredName,
           `${this.device.name} 照度計`,
         )
         .updateCharacteristic(
-          this.platform.Characteristic.CurrentAmbientLightLevel,
+          super.Characteristic.CurrentAmbientLightLevel,
           lightLevel,
         );
     }
