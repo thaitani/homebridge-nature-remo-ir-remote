@@ -40,47 +40,44 @@ export class Aircon extends NatureRemoAccessory {
       firmwareRevision: aircon.device.firmware_version,
     });
 
-    const airconService = (
-      accessory.getService(super.Service.Thermostat) ||
-      accessory.addService(super.Service.Thermostat)
-    )
-      .setCharacteristic(super.Characteristic.Name, aircon.nickname)
-      .setCharacteristic(super.Characteristic.ConfiguredName, aircon.nickname);
+    const airconService = this.getOrAddService(this.Service.Thermostat)
+      .setCharacteristic(this.Characteristic.Name, aircon.nickname)
+      .setCharacteristic(this.Characteristic.ConfiguredName, aircon.nickname);
 
     // 運転状況取得
     airconService
-      .getCharacteristic(super.Characteristic.CurrentHeatingCoolingState)
+      .getCharacteristic(this.Characteristic.CurrentHeatingCoolingState)
       .onGet(() => {
         if (aircon.settings.button === 'power-off') {
-          return super.Characteristic.CurrentHeatingCoolingState.OFF;
+          return this.Characteristic.CurrentHeatingCoolingState.OFF;
         }
         return aircon.settings.mode === 'cool'
-          ? super.Characteristic.CurrentHeatingCoolingState.COOL
+          ? this.Characteristic.CurrentHeatingCoolingState.COOL
           : aircon.settings.mode === 'warm'
-          ? super.Characteristic.CurrentHeatingCoolingState.HEAT
+          ? this.Characteristic.CurrentHeatingCoolingState.HEAT
           : aircon.settings.mode === 'dry'
-          ? super.Characteristic.CurrentHeatingCoolingState.COOL
-          : super.Characteristic.CurrentHeatingCoolingState.OFF;
+          ? this.Characteristic.CurrentHeatingCoolingState.COOL
+          : this.Characteristic.CurrentHeatingCoolingState.OFF;
       });
 
     // 運転状況変更時
     airconService
-      .getCharacteristic(super.Characteristic.TargetHeatingCoolingState)
+      .getCharacteristic(this.Characteristic.TargetHeatingCoolingState)
       .onSet(async (value) => {
         this.settings.targetMode = value;
         let mode = '';
         let button: 'power-off' | '' = '';
         switch (value) {
-          case super.Characteristic.TargetHeatingCoolingState.AUTO:
+          case this.Characteristic.TargetHeatingCoolingState.AUTO:
             mode = 'dry';
             break;
-          case super.Characteristic.TargetHeatingCoolingState.HEAT:
+          case this.Characteristic.TargetHeatingCoolingState.HEAT:
             mode = 'warm';
             break;
-          case super.Characteristic.TargetHeatingCoolingState.COOL:
+          case this.Characteristic.TargetHeatingCoolingState.COOL:
             mode = 'cool';
             break;
-          case super.Characteristic.TargetHeatingCoolingState.OFF:
+          case this.Characteristic.TargetHeatingCoolingState.OFF:
             mode = this.aircon.settings.mode;
             button = 'power-off';
             break;
@@ -94,7 +91,7 @@ export class Aircon extends NatureRemoAccessory {
 
     // 設定温度
     airconService
-      .getCharacteristic(super.Characteristic.TargetTemperature)
+      .getCharacteristic(this.Characteristic.TargetTemperature)
       .setProps({
         maxValue: this.maxTemperature(),
         minValue: this.minTemperature(),
@@ -102,7 +99,7 @@ export class Aircon extends NatureRemoAccessory {
       })
       .onSet((value) => {
         this.settings.targetTemperature = value;
-        super.natureRemoApi.airconSettings(aircon.id, {
+        this.natureRemoApi.airconSettings(aircon.id, {
           button: '',
           temperature: value.toString(),
           dir: aircon.settings.dir,
@@ -116,13 +113,13 @@ export class Aircon extends NatureRemoAccessory {
 
     // 設定湿度
     airconService
-      .getCharacteristic(super.Characteristic.TargetRelativeHumidity)
+      .getCharacteristic(this.Characteristic.TargetRelativeHumidity)
       .setProps({
         minStep: 25,
       })
       .onSet((value) => {
         const num = Number(value);
-        super.natureRemoApi.airconSettings(aircon.id, {
+        this.natureRemoApi.airconSettings(aircon.id, {
           button: '',
           temperature: aircon.settings.temp,
           dir: aircon.settings.dir,
@@ -146,7 +143,7 @@ export class Aircon extends NatureRemoAccessory {
 
     // 温度単位
     airconService
-      .getCharacteristic(super.Characteristic.TemperatureDisplayUnits)
+      .getCharacteristic(this.Characteristic.TemperatureDisplayUnits)
       .updateValue(this.settings.tempUnit);
 
     // 現在の気温
@@ -155,13 +152,13 @@ export class Aircon extends NatureRemoAccessory {
       const te = device?.newest_events.te.val;
       if (te) {
         airconService
-          .getCharacteristic(super.Characteristic.CurrentTemperature)
+          .getCharacteristic(this.Characteristic.CurrentTemperature)
           .updateValue(te);
       }
       const hu = device?.newest_events.hu?.val;
       if (hu) {
         airconService
-          .getCharacteristic(super.Characteristic.CurrentRelativeHumidity)
+          .getCharacteristic(this.Characteristic.CurrentRelativeHumidity)
           .updateValue(hu);
       }
     });
@@ -197,10 +194,10 @@ export class Aircon extends NatureRemoAccessory {
     const targetVolume = this.volumeMapping[settings.vol] ?? 0;
     const tempUnit =
       settings.temp_unit === 'c'
-        ? super.Characteristic.TemperatureDisplayUnits.CELSIUS
-        : super.Characteristic.TemperatureDisplayUnits.FAHRENHEIT;
+        ? this.Characteristic.TemperatureDisplayUnits.CELSIUS
+        : this.Characteristic.TemperatureDisplayUnits.FAHRENHEIT;
     if (settings.button === 'power-off') {
-      targetMode = super.Characteristic.TargetHeatingCoolingState.OFF;
+      targetMode = this.Characteristic.TargetHeatingCoolingState.OFF;
       return {
         targetMode,
         targetTemperature,
@@ -211,13 +208,13 @@ export class Aircon extends NatureRemoAccessory {
 
     switch (settings.mode) {
       case 'warm':
-        targetMode = super.Characteristic.TargetHeatingCoolingState.HEAT;
+        targetMode = this.Characteristic.TargetHeatingCoolingState.HEAT;
         break;
       case 'cool':
-        targetMode = super.Characteristic.TargetHeatingCoolingState.COOL;
+        targetMode = this.Characteristic.TargetHeatingCoolingState.COOL;
         break;
       case 'dry':
-        targetMode = super.Characteristic.TargetHeatingCoolingState.AUTO;
+        targetMode = this.Characteristic.TargetHeatingCoolingState.AUTO;
         break;
     }
     return {
@@ -229,10 +226,7 @@ export class Aircon extends NatureRemoAccessory {
   }
 
   async sendAirconSetting(params: AirconSettingParams): Promise<void> {
-    const res = await super.natureRemoApi.airconSettings(
-      this.aircon.id,
-      params,
-    );
+    const res = await this.natureRemoApi.airconSettings(this.aircon.id, params);
     if (res) {
       this.settings = this.fromSettings(res);
     }

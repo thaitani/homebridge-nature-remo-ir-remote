@@ -1,4 +1,4 @@
-import { LogLevel, PlatformAccessory } from 'homebridge';
+import { LogLevel, PlatformAccessory, Service, WithUUID } from 'homebridge';
 import NatureRemoRemotePlatform from '../platform';
 import { getCategoryName } from '../utils';
 
@@ -29,6 +29,13 @@ export abstract class NatureRemoAccessory {
         this.Characteristic.FirmwareRevision,
         info.firmwareRevision,
       );
+  }
+
+  getOrAddService(service: WithUUID<typeof Service>) {
+    return (
+      this.accessory.getService(service) ||
+      this.accessory.addService(service as unknown as Service)
+    );
   }
 
   log(message: string, logLevel = LogLevel.DEBUG) {

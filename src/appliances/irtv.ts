@@ -19,96 +19,89 @@ export class IRTV extends NatureRemoAccessory {
       firmwareRevision: ir.device.firmware_version,
     });
 
-    const tvService = (
-      accessory.getService(super.Service.Television) ||
-      accessory.addService(super.Service.Television)
-    )
-      .setCharacteristic(super.Characteristic.Name, ir.nickname)
-      .setCharacteristic(super.Characteristic.ConfiguredName, ir.nickname)
-      .setCharacteristic(super.Characteristic.ActiveIdentifier, 1);
+    const tvService = this.getOrAddService(this.Service.Television)
+      .setCharacteristic(this.Characteristic.Name, ir.nickname)
+      .setCharacteristic(this.Characteristic.ConfiguredName, ir.nickname)
+      .setCharacteristic(this.Characteristic.ActiveIdentifier, 1);
 
-    tvService.getCharacteristic(super.Characteristic.Active).onSet(() => {
+    tvService.getCharacteristic(this.Characteristic.Active).onSet(() => {
       this.sendSignal('active');
     });
 
     tvService
-      .getCharacteristic(super.Characteristic.RemoteKey)
+      .getCharacteristic(this.Characteristic.RemoteKey)
       .onSet((newValue) => {
         switch (newValue) {
-          case super.Characteristic.RemoteKey.REWIND: {
+          case this.Characteristic.RemoteKey.REWIND: {
             this.sendSignal('rewind');
             break;
           }
-          case super.Characteristic.RemoteKey.FAST_FORWARD: {
+          case this.Characteristic.RemoteKey.FAST_FORWARD: {
             this.sendSignal('fastForward');
             break;
           }
-          case super.Characteristic.RemoteKey.NEXT_TRACK: {
+          case this.Characteristic.RemoteKey.NEXT_TRACK: {
             this.sendSignal('nextTrack');
             break;
           }
-          case super.Characteristic.RemoteKey.PREVIOUS_TRACK: {
+          case this.Characteristic.RemoteKey.PREVIOUS_TRACK: {
             this.sendSignal('previousTrack');
             break;
           }
-          case super.Characteristic.RemoteKey.ARROW_UP: {
+          case this.Characteristic.RemoteKey.ARROW_UP: {
             this.sendSignal('arrowUp');
             break;
           }
-          case super.Characteristic.RemoteKey.ARROW_DOWN: {
+          case this.Characteristic.RemoteKey.ARROW_DOWN: {
             this.sendSignal('arrowDown');
             break;
           }
-          case super.Characteristic.RemoteKey.ARROW_LEFT: {
+          case this.Characteristic.RemoteKey.ARROW_LEFT: {
             this.sendSignal('arrowLeft');
             break;
           }
-          case super.Characteristic.RemoteKey.ARROW_RIGHT: {
+          case this.Characteristic.RemoteKey.ARROW_RIGHT: {
             this.sendSignal('arrowRight');
             break;
           }
-          case super.Characteristic.RemoteKey.SELECT: {
+          case this.Characteristic.RemoteKey.SELECT: {
             this.sendSignal('select');
             break;
           }
-          case super.Characteristic.RemoteKey.BACK: {
+          case this.Characteristic.RemoteKey.BACK: {
             this.sendSignal('back');
             break;
           }
-          case super.Characteristic.RemoteKey.EXIT: {
+          case this.Characteristic.RemoteKey.EXIT: {
             this.sendSignal('exit');
             break;
           }
-          case super.Characteristic.RemoteKey.PLAY_PAUSE: {
+          case this.Characteristic.RemoteKey.PLAY_PAUSE: {
             this.sendSignal('playPause');
             break;
           }
-          case super.Characteristic.RemoteKey.INFORMATION: {
+          case this.Characteristic.RemoteKey.INFORMATION: {
             this.sendSignal('information');
             break;
           }
         }
       });
 
-    const speakerService =
-      accessory.getService(super.Service.TelevisionSpeaker) ||
-      accessory.addService(super.Service.TelevisionSpeaker);
-
-    speakerService
+    const speakerService = this.getOrAddService(this.Service.TelevisionSpeaker)
       .setCharacteristic(
-        super.Characteristic.Active,
-        super.Characteristic.Active.ACTIVE,
+        this.Characteristic.Active,
+        this.Characteristic.Active.ACTIVE,
       )
       .setCharacteristic(
-        super.Characteristic.VolumeControlType,
-        super.Characteristic.VolumeControlType.ABSOLUTE,
+        this.Characteristic.VolumeControlType,
+        this.Characteristic.VolumeControlType.ABSOLUTE,
       );
 
     // handle volume control
     speakerService
-      .getCharacteristic(super.Characteristic.VolumeSelector)
+      .getCharacteristic(this.Characteristic.VolumeSelector)
       .onSet((newValue) => {
-        if (newValue === super.Characteristic.VolumeSelector.INCREMENT) {
+        if (newValue === this.Characteristic.VolumeSelector.INCREMENT) {
           this.sendSignal('volumeUp');
         } else {
           this.sendSignal('volumeDown');
@@ -121,7 +114,7 @@ export class IRTV extends NatureRemoAccessory {
     const signal = this.ir.signals.find((e) => e.name === targetName)?.id;
     this.log('target' + signal ?? 'not signal');
     if (signal) {
-      super.natureRemoApi.sendSignal(signal);
+      this.natureRemoApi.sendSignal(signal);
     }
   }
 }

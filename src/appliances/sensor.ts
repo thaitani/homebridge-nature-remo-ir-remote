@@ -18,38 +18,29 @@ export class Sensor extends NatureRemoAccessory {
       firmwareRevision: device.firmware_version,
     });
 
-    (
-      accessory.getService(super.Service.TemperatureSensor) ||
-      accessory.addService(super.Service.TemperatureSensor)
-    )
+    this.getOrAddService(this.Service.TemperatureSensor)
+      .setCharacteristic(this.Characteristic.Name, `${this.device.name} 温度計`)
       .setCharacteristic(
-        super.Characteristic.Name,
-        `${this.device.name} 温度計`,
-      )
-      .setCharacteristic(
-        super.Characteristic.ConfiguredName,
+        this.Characteristic.ConfiguredName,
         `${this.device.name} 温度計`,
       )
       .updateCharacteristic(
-        super.Characteristic.CurrentTemperature,
+        this.Characteristic.CurrentTemperature,
         device.newest_events.te.val,
       );
 
     if (isNotMini(device)) {
-      (
-        accessory.getService(super.Service.HumiditySensor) ||
-        accessory.addService(super.Service.HumiditySensor)
-      )
+      this.getOrAddService(this.Service.HumiditySensor)
         .setCharacteristic(
-          super.Characteristic.Name,
+          this.Characteristic.Name,
           `${this.device.name} 湿度計`,
         )
         .setCharacteristic(
-          super.Characteristic.ConfiguredName,
+          this.Characteristic.ConfiguredName,
           `${this.device.name} 湿度計`,
         )
         .updateCharacteristic(
-          super.Characteristic.CurrentRelativeHumidity,
+          this.Characteristic.CurrentRelativeHumidity,
           device.newest_events.hu!.val,
         );
       const lightLevel =
@@ -57,20 +48,17 @@ export class Sensor extends NatureRemoAccessory {
           ? 0.0001
           : device.newest_events.il!.val;
 
-      (
-        accessory.getService(super.Service.LightSensor) ||
-        accessory.addService(super.Service.LightSensor)
-      )
+      this.getOrAddService(this.Service.LightSensor)
         .setCharacteristic(
-          super.Characteristic.Name,
+          this.Characteristic.Name,
           `${this.device.name} 照度計`,
         )
         .setCharacteristic(
-          super.Characteristic.ConfiguredName,
+          this.Characteristic.ConfiguredName,
           `${this.device.name} 照度計`,
         )
         .updateCharacteristic(
-          super.Characteristic.CurrentAmbientLightLevel,
+          this.Characteristic.CurrentAmbientLightLevel,
           lightLevel,
         );
     }
