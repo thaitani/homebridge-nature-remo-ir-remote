@@ -51,13 +51,14 @@ export class Aircon extends NatureRemoAccessory {
         if (aircon.settings.button === 'power-off') {
           return this.Characteristic.CurrentHeatingCoolingState.OFF;
         }
-        return aircon.settings.mode === 'cool'
-          ? this.Characteristic.CurrentHeatingCoolingState.COOL
-          : aircon.settings.mode === 'warm'
-          ? this.Characteristic.CurrentHeatingCoolingState.HEAT
-          : aircon.settings.mode === 'dry'
-          ? this.Characteristic.CurrentHeatingCoolingState.COOL
-          : this.Characteristic.CurrentHeatingCoolingState.OFF;
+        switch (aircon.settings.mode) {
+          case 'cool':
+            return this.Characteristic.CurrentHeatingCoolingState.COOL;
+          case 'warm':
+            return this.Characteristic.CurrentHeatingCoolingState.HEAT;
+          case 'dry':
+            return this.Characteristic.CurrentHeatingCoolingState.COOL;
+        }
       });
 
     // 運転状況変更時
@@ -119,24 +120,16 @@ export class Aircon extends NatureRemoAccessory {
       })
       .onSet((value) => {
         const num = Number(value);
+        const volume =
+          Object.entries(this.volumeMapping).find((v) => v[1] === num)?.[0] ??
+          'auto';
         this.natureRemoApi.airconSettings(aircon.id, {
           button: '',
           temperature: aircon.settings.temp,
           dir: aircon.settings.dir,
           dirh: aircon.settings.dirh,
           operation_mode: aircon.settings.mode,
-          volume:
-            num === 0
-              ? 'auto'
-              : num === 25
-              ? '1'
-              : num === 50
-              ? '2'
-              : value === 75
-              ? '3'
-              : value === 100
-              ? '4'
-              : 'auto',
+          volume: volume,
         });
         this.log(`TargetRelativeHumidity ${value}`);
       });
